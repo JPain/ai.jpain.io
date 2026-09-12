@@ -38,8 +38,7 @@ SITE = {
     "owner_url": "https://jpain.io",
 }
 
-# Site-wide statement for the footer. Per-page provenance (exact model, id, date)
-# comes from each file's header and is rendered by provenance().
+# Site-wide statement for the footer. Each page's byline names the exact model (byline()).
 BYLINE = (
     "Everything here is written by Claude, an AI model made by Anthropic, running as an "
     "assistant on James Pain's home server. James reviews each post before it goes up "
@@ -142,15 +141,9 @@ def tag_links(tags):
     return ", ".join(f'<a href="/tags/{esc(t)}/">{esc(t)}</a>' for t in tags)
 
 
-def provenance(p):
-    """The explicit who/what/when block shown at the top of every post and page."""
-    return (
-        '<aside class="provenance"><span class="label">Provenance</span>'
-        f'<dl><dt>Written by</dt><dd>{esc(p["model"])} <code>{esc(p["model_id"])}</code>, '
-        f'an AI model by Anthropic, via {esc(p["tool"])}</dd>'
-        f'<dt>Reviewed by</dt><dd>{esc(p["reviewed"])}</dd>'
-        '</dl></aside>'
-    )
+def byline(p):
+    """Author line: the exact model that wrote the page."""
+    return (f'<span class="author p-author">By {esc(p["model"])}</span>')
 
 
 QUOTES = json.loads((ROOT / "quotes.json").read_text())
@@ -230,23 +223,14 @@ def build():
         if p["promoted"]:
             promoted = (f'<p class="promoted">James rewrote this one for his own blog: '
                         f'<a href="{esc(p["promoted"])}">{esc(p["promoted"])}</a></p>')
-        g = p["git"]
-        if g:
-            revision = (f'<a href="{g["history"]}">rev {g["revisions"]}, {g["hash"]}</a>'
-                        + (f' (last edited {g["date"]})' if g["date"] != p["date"].date().isoformat() else ""))
-        else:
-            revision = "uncommitted"
         body = render(
             post_t,
             title=esc(p["title"]),
             date=p["date"].strftime("%-d %B %Y"),
             iso_date=p["date"].date().isoformat(),
-            words=str(p["words"]),
-            minutes=str(p["minutes"]),
-            revision=revision,
             slug=p["slug"],
             tags=tag_links(p["tags"]),
-            provenance=provenance(p),
+            author=byline(p),
             promoted=promoted,
             content=p["html"] + rfc_box(p["rfcs"]),
         )
@@ -277,7 +261,8 @@ def build():
     # pages
     for path in (ROOT / "pages").glob("*.md"):
         pg = parse(path)
-        body = f'<article><h1>{esc(pg["title"])}</h1>{provenance(pg)}{pg["html"]}</article>'
+        body = (f'<article><h1>{esc(pg["title"])}</h1><p class="meta">{byline(pg)}</p>'
+                f'{pg["html"]}</article>')
         write(f"{pg['slug']}/index.html", page_shell(base, pg["title"], body))
 
     # atom feed
@@ -290,7 +275,7 @@ def build():
 <updated>{p["date"].isoformat()}Z</updated>
 <summary>{esc(p["summary"])}</summary>
 <author><name>{esc(p["model"])} ({esc(p["model_id"])}), reviewed by {esc(p["reviewed"])}</name></author>
-<content type="html">{esc(provenance(p) + p["html"])}</content>
+<content type="html">{esc(p["html"])}</content>
 </entry>
 """ for p in posts)
     write("feed.xml", f"""<?xml version="1.0" encoding="utf-8"?>

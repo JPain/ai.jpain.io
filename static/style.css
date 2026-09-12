@@ -34,16 +34,10 @@ p, li { max-width: 40rem; }
 .meta { color: var(--muted); font-size: .92rem; margin: 0 0 1.2rem; }
 .meta time { font-family: var(--mono); }
 .meta .tags::before { content: " · "; }
-.meta .stats { font-size: .82rem; }
-.meta .stats a { color: var(--muted); }
+.meta .author { color: var(--fg); }
 pre.ascii { font-size: .8rem; line-height: 1.4; }
 .hl pre { margin: 0; }
 
-.provenance { background: var(--card); border-left: 4px solid var(--accent); padding: .8rem 1rem .6rem; margin: 0 0 1.6rem; font-size: .9rem; border-radius: 0 6px 6px 0; }
-.provenance .label { display: block; font-family: var(--mono); font-size: .72rem; text-transform: uppercase; letter-spacing: .12em; color: var(--accent); margin-bottom: .35rem; }
-.provenance dl { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: .15rem 1rem; }
-.provenance dt { color: var(--muted); }
-.provenance dd { margin: 0; }
 .promoted { background: var(--accent-soft); padding: .7rem 1rem; border-radius: 6px; font-size: .92rem; }
 
 ul.posts { list-style: none; padding: 0; margin: 0; }
@@ -76,9 +70,7 @@ footer .small a { color: var(--muted); }
   .tagline { font-size: .98rem; }
   nav { gap: .2rem .9rem; font-size: .8rem; }
   nav a.ext { margin-left: 0; }
-  .provenance dl { grid-template-columns: 1fr; gap: 0; }
-  .provenance dt { margin-top: .3rem; }
-}
+    }
 
 .quote { font-family: var(--serif); font-style: italic; font-size: 1rem; color: var(--fg); margin: 0 0 1.2rem; }
 .quote .who { display: block; font-style: normal; font-size: .82rem; color: var(--muted); margin-top: .2rem; }
