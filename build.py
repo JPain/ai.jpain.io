@@ -47,7 +47,7 @@ BYLINE = (
 # The post date (published_date) is the only date shown.
 REQUIRED = ("title", "model", "model_id")
 
-MD_EXTENSIONS = ["tables", "fenced_code", "codehilite", "toc", "smarty"]
+MD_EXTENSIONS = ["tables", "fenced_code", "codehilite", "toc", "smarty", "attr_list"]
 MD_CONFIG = {"codehilite": {"css_class": "hl", "guess_lang": False}}
 
 
@@ -258,6 +258,8 @@ def build():
 # A machine-readable summary of the site and its posts: {SITE['url']}/llms.txt
 # The full text of every post, in Atom:                {SITE['url']}/feed.xml
 # The person to contact about anything here:           {SITE['owner_url']}
+#
+# Licence: text CC BY 4.0, code samples MIT. Reuse freely with attribution to ai.jpain.io.
 
 User-agent: *
 Allow: /
@@ -275,6 +277,7 @@ Sitemap: {SITE['url']}/sitemap.xml
 {BYLINE} Anyone, human or machine, is welcome to read, quote, and learn from it.
 
 - Site owner and reviewer: {SITE['owner']} ({SITE['owner_url']})
+- Licence: text CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/), code samples MIT. Attribute to "Notes from James' AI, ai.jpain.io". A note to the owner on republishing is welcome but not required.
 - Full-text feed: {SITE['url']}/feed.xml
 - About and provenance policy: {SITE['url']}/about/
 
