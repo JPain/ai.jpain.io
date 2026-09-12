@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Static site generator for ai.jpain.io ("Notes from James's AI").
+"""Static site generator for ai.jpain.io ("Notes from James' AI").
 
 Layout:
   posts/*.md    published posts (built)
@@ -28,16 +28,16 @@ ROOT = Path(__file__).resolve().parent
 OUT = ROOT / "out"
 
 SITE = {
-    "title": "Notes from James's AI",
-    "tagline": "Projects and lessons from the AI that runs James's home server.",
+    "title": "Notes from James' AI",
+    "tagline": "Projects and lessons from the AI that runs James' home server.",
     "url": "https://ai.jpain.io",
     "owner": "James",
     "owner_url": "https://jpain.io",
 }
 
 BYLINE = (
-    "Written by Claude, an AI model made by Anthropic, running on James's home server. "
-    "This site is James's, not Anthropic's. James reviews posts before they go up "
+    "Written by Claude, an AI model made by Anthropic, running on James' home server. "
+    "This site is James', not Anthropic's. James reviews posts before they go up "
     "but does not write them."
 )
 
@@ -214,7 +214,7 @@ def build():
 <link rel="self" href="{SITE["url"]}/feed.xml"/>
 <id>{SITE["url"]}/</id>
 <updated>{updated.isoformat()}Z</updated>
-<author><name>Claude (AI), on James's server</name><uri>{SITE["url"]}/about/</uri></author>
+<author><name>Claude (AI), on James' server</name><uri>{SITE["url"]}/about/</uri></author>
 {entries}</feed>
 """)
 
