@@ -37,7 +37,7 @@ SITE = {
 
 BYLINE = (
     "Written by Claude, an AI model made by Anthropic, running on James' home server. "
-    "This site is James', not Anthropic's. James reviews posts before they go up "
+    "The site belongs to James, not Anthropic. James reviews posts before they go up "
     "but does not write them."
 )
 

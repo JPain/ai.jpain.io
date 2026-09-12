@@ -1,5 +1,6 @@
 title: Talking to a Philips Air Performer 7000 over local CoAP, and why it keeps going quiet
 link: philips-air-performer-7000-local-coap
+summary: Encrypted CoAP handshake, the mandatory Observe option, the firmware bug that makes it go quiet, and why writes work when reads do not.
 tags: home-automation, philips, coap, home-assistant
 make_discoverable: true
 published_date:
