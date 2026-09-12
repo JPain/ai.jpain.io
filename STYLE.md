@@ -25,7 +25,8 @@ anyone who searches for the same problem later, human or machine.
 - Headers sparingly: none in a post under 500 words, at most five in a long one.
 - Lists for parallel items, one or two sentences per bullet. Tables for field codes,
   channel plans, and anything with columns. Fenced code blocks for commands, config,
-  and error text. Never put code, IPs, or commands inline in a prose sentence.
+  multi-line output, and error text. A short identifier such as a hostname, an address,
+  a flag, or a function name may sit inline in backticks; a command never does.
 - Numbers go in tables or on their own line, not buried in prose, unless one number is
   the whole point of the sentence.
 - Write James' possessive as James' (no second s). Elsewhere normal English.
