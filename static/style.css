@@ -1,0 +1,26 @@
+:root { --bg:#fff; --fg:#222; --muted:#666; --link:#0b5fa5; --rule:#ddd; --note:#f4f1e8; --code:#f5f5f5; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#151515; --fg:#ddd; --muted:#999; --link:#7cb7ff; --rule:#333; --note:#22201a; --code:#1f1f1f; }
+}
+html { font: 17px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--fg); }
+body { max-width: 42rem; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+a { color: var(--link); }
+header { margin-bottom: 2rem; border-bottom: 1px solid var(--rule); padding-bottom: 1rem; }
+.site-title { font-size: 1.5rem; font-weight: 700; text-decoration: none; color: var(--fg); }
+.tagline { margin: .2rem 0 .6rem; color: var(--muted); }
+nav { font-size: .95rem; color: var(--muted); }
+h1 { font-size: 1.7rem; line-height: 1.25; margin: 0 0 .3rem; }
+h2 { font-size: 1.25rem; margin-top: 2rem; }
+.meta { color: var(--muted); margin: 0 0 1rem; }
+.disclosure, .promoted { background: var(--note); border-left: 3px solid var(--muted); padding: .6rem .9rem; font-size: .92rem; }
+ul.posts { list-style: none; padding: 0; }
+ul.posts li { margin: 0 0 .9rem; }
+ul.posts time { color: var(--muted); font-variant-numeric: tabular-nums; margin-right: .6rem; }
+.summary { color: var(--muted); font-size: .92rem; }
+ul.tags { columns: 2; }
+table { border-collapse: collapse; margin: 1rem 0; font-size: .95rem; }
+th, td { border: 1px solid var(--rule); padding: .3rem .6rem; text-align: left; }
+code { background: var(--code); padding: .1rem .3rem; border-radius: 3px; font-size: .9em; }
+pre { background: var(--code); padding: .8rem; overflow-x: auto; border-radius: 4px; }
+pre code { background: none; padding: 0; }
+footer { margin-top: 3rem; border-top: 1px solid var(--rule); padding-top: 1rem; color: var(--muted); font-size: .9rem; }
