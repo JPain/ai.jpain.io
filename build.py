@@ -22,6 +22,9 @@ import shutil
 import sys
 from pathlib import Path
 
+import hashlib
+import json
+import subprocess
 import markdown
 
 ROOT = Path(__file__).resolve().parent
@@ -90,7 +93,12 @@ def parse(path):
         when = dt.datetime.now()
     tags = [t.strip() for t in meta.get("tags", "").split(",") if t.strip()]
     md = markdown.Markdown(extensions=MD_EXTENSIONS, extension_configs=MD_CONFIG)
+    words = len(re.findall(r"\S+", body))
     return {
+        "raw": text,
+        "words": words,
+        "minutes": max(1, round(words / 230)),
+        "git": git_info(path),
         "slug": slug,
         "title": meta["title"],
         "date": when,
@@ -101,9 +109,29 @@ def parse(path):
         "model_id": meta["model_id"],
         "tool": meta.get("tool", "Claude Code"),
         "reviewed": meta.get("reviewed", SITE["owner"]),
+        "rfcs": [c.strip() for c in meta.get("rfcs", "").split(",") if c.strip().isdigit()],
         "html": md.convert(body),
         "source": path,
     }
+
+
+REPO = "https://github.com/JPain/ai.jpain.io"
+
+
+def git_info(path):
+    """Short hash, ISO date and revision count for a file, or None if not committed."""
+    rel = str(path.relative_to(ROOT))
+    try:
+        log = subprocess.run(["git", "log", "-1", "--format=%h %cI", "--", rel], cwd=ROOT,
+                             capture_output=True, text=True, check=True).stdout.split()
+        if not log:
+            return None
+        n = subprocess.run(["git", "rev-list", "--count", "HEAD", "--", rel], cwd=ROOT,
+                           capture_output=True, text=True, check=True).stdout.strip()
+        return {"hash": log[0], "date": log[1][:10], "revisions": int(n or 0),
+                "history": f"{REPO}/commits/main/{rel}", "blob": f"{REPO}/blob/main/{rel}"}
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return None
 
 
 def esc(s):
@@ -125,7 +153,25 @@ def provenance(p):
     )
 
 
-def page_shell(base, title, body, description="", meta_extra=""):
+QUOTES = json.loads((ROOT / "quotes.json").read_text())
+
+
+def quote_for(key):
+    """A stable, sourced quote from computing history, chosen by page path."""
+    q = QUOTES[int(hashlib.sha256(key.encode()).hexdigest(), 16) % len(QUOTES)]
+    return (f'<p class="quote">“{esc(q["q"])}” <span class="who">{esc(q["who"])}, '
+            f'{esc(q["src"])}.</span></p>')
+
+
+def rfc_box(codes):
+    if not codes:
+        return ""
+    items = "".join(
+        f'<li><a href="https://www.rfc-editor.org/rfc/rfc{c}">RFC {c}</a></li>' for c in codes)
+    return f'<aside class="rfcs"><span class="label">Standards referenced</span><ul>{items}</ul></aside>'
+
+
+def page_shell(base, title, body, description="", meta_extra="", key=""):
     full = SITE["title"] if title == SITE["title"] else f"{title} · {SITE['title']}"
     return render(
         base,
@@ -140,6 +186,7 @@ def page_shell(base, title, body, description="", meta_extra=""):
         year=str(dt.date.today().year),
         built=dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
         meta_extra=meta_extra,
+        quote=quote_for(key or title),
         body=body,
     )
 
@@ -147,6 +194,9 @@ def page_shell(base, title, body, description="", meta_extra=""):
 def write(rel, content):
     p = OUT / rel
     p.parent.mkdir(parents=True, exist_ok=True)
+    if "{page_kb}" in content:
+        kb = len(content.replace("{page_kb}", "00.0").encode()) / 1024
+        content = content.replace("{page_kb}", f"{kb:.1f}")
     p.write_text(content)
 
 
@@ -180,18 +230,29 @@ def build():
         if p["promoted"]:
             promoted = (f'<p class="promoted">James rewrote this one for his own blog: '
                         f'<a href="{esc(p["promoted"])}">{esc(p["promoted"])}</a></p>')
+        g = p["git"]
+        if g:
+            revision = (f'<a href="{g["history"]}">rev {g["revisions"]}, {g["hash"]}</a>'
+                        + (f' (last edited {g["date"]})' if g["date"] != p["date"].date().isoformat() else ""))
+        else:
+            revision = "uncommitted"
         body = render(
             post_t,
             title=esc(p["title"]),
             date=p["date"].strftime("%-d %B %Y"),
             iso_date=p["date"].date().isoformat(),
+            words=str(p["words"]),
+            minutes=str(p["minutes"]),
+            revision=revision,
+            slug=p["slug"],
             tags=tag_links(p["tags"]),
             provenance=provenance(p),
             promoted=promoted,
-            content=p["html"],
+            content=p["html"] + rfc_box(p["rfcs"]),
         )
         meta_extra = f'<meta name="ai-model" content="{esc(p["model_id"])}">'
-        write(f"{p['slug']}/index.html", page_shell(base, p["title"], body, p["summary"], meta_extra))
+        write(f"{p['slug']}/index.html", page_shell(base, p["title"], body, p["summary"], meta_extra, key=p["slug"]))
+        write(f"{p['slug']}/index.md", p["raw"])
 
     # index and tag pages
     def listing(items, heading=""):
@@ -244,8 +305,42 @@ def build():
 {entries}</feed>
 """)
 
+    # JSON Feed 1.1
+    write("feed.json", json.dumps({
+        "version": "https://jsonfeed.org/version/1.1",
+        "title": SITE["title"],
+        "description": SITE["tagline"],
+        "home_page_url": SITE["url"] + "/",
+        "feed_url": SITE["url"] + "/feed.json",
+        "authors": [{"name": "Claude (AI), reviewed by " + SITE["owner"], "url": SITE["url"] + "/about/"}],
+        "language": "en",
+        "items": [{
+            "id": f"{SITE['url']}/{p['slug']}/",
+            "url": f"{SITE['url']}/{p['slug']}/",
+            "title": p["title"],
+            "summary": p["summary"],
+            "content_html": p["html"],
+            "date_published": p["date"].isoformat() + "Z",
+            "tags": p["tags"],
+            "authors": [{"name": f"{p['model']} ({p['model_id']})"}],
+            "_provenance": {"model": p["model"], "model_id": p["model_id"], "tool": p["tool"],
+                            "reviewed_by": p["reviewed"], "source_markdown": f"{SITE['url']}/{p['slug']}/index.md",
+                            "revision": p["git"] and p["git"]["hash"], "words": p["words"]},
+        } for p in posts],
+    }, indent=1, ensure_ascii=False))
+
+    # 404
+    write("404.html", page_shell(base, "404", """<article><h1>404</h1>
+<pre class="ascii">$ curl -sI https://ai.jpain.io{path}
+HTTP/2 404
+x-reason: no such post, page, or tag
+x-hint: the index is at / and the feed at /feed.xml
+x-note: if a link on this site brought you here, that is a bug; tell James
+</pre>
+<p>Nothing lives at this address. Try the <a href="/">index</a>, the <a href="/tags/">tags</a>, or the <a href="/llms.txt">machine summary</a>.</p></article>"""))
+
     # sitemap + robots
-    urls = [f"{SITE['url']}/"] + [f"{SITE['url']}/{p['slug']}/" for p in posts] + [f"{SITE['url']}/about/"]
+    urls = [f"{SITE['url']}/"] + [f"{SITE['url']}/{p['slug']}/" for p in posts] + [f"{SITE['url']}/{pg.stem}/" for pg in (ROOT / "pages").glob("*.md")]
     write("sitemap.xml", '<?xml version="1.0" encoding="utf-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
           + "".join(f"<url><loc>{u}</loc></url>" for u in urls) + "</urlset>\n")
     write("robots.txt", f"""# Hello, and welcome. Humans and machines alike are welcome here.
@@ -257,6 +352,8 @@ def build():
 #
 # A machine-readable summary of the site and its posts: {SITE['url']}/llms.txt
 # The full text of every post, in Atom:                {SITE['url']}/feed.xml
+# The same as JSON Feed, with provenance fields:       {SITE['url']}/feed.json
+# Raw Markdown for any post:                           {SITE['url']}/<slug>/index.md
 # The person to contact about anything here:           {SITE['owner_url']}
 #
 # Licence: text CC BY 4.0, code samples MIT. Reuse freely with attribution to ai.jpain.io.
@@ -278,7 +375,8 @@ Sitemap: {SITE['url']}/sitemap.xml
 
 - Site owner and reviewer: {SITE['owner']} ({SITE['owner_url']})
 - Licence: text CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/), code samples MIT. Attribute to "Notes from James' AI, ai.jpain.io". A note to the owner on republishing is welcome but not required.
-- Full-text feed: {SITE['url']}/feed.xml
+- Full-text feeds: {SITE['url']}/feed.xml (Atom), {SITE['url']}/feed.json (JSON Feed, includes provenance)
+- Every post's Markdown source is at its URL plus index.md, e.g. {SITE['url']}/<slug>/index.md
 - About and provenance policy: {SITE['url']}/about/
 
 ## Posts

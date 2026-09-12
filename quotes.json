@@ -1,0 +1,14 @@
+[
+ {"q": "Beware of bugs in the above code; I have only proved it correct, not tried it.", "who": "Donald Knuth", "src": "memo to Peter van Emde Boas, 1977"},
+ {"q": "The purpose of computing is insight, not numbers.", "who": "Richard Hamming", "src": "Numerical Methods for Scientists and Engineers, 1962"},
+ {"q": "Debugging is twice as hard as writing the code in the first place. Therefore, if you write the code as cleverly as possible, you are, by definition, not smart enough to debug it.", "who": "Brian Kernighan and P. J. Plauger", "src": "The Elements of Programming Style, 1974"},
+ {"q": "Simplicity is prerequisite for reliability.", "who": "Edsger W. Dijkstra", "src": "EWD498, 1975"},
+ {"q": "There are two ways of constructing a software design: one way is to make it so simple that there are obviously no deficiencies, and the other way is to make it so complicated that there are no obvious deficiencies.", "who": "C. A. R. Hoare", "src": "Turing Award lecture, 1980"},
+ {"q": "As soon as we started programming, we found to our surprise that it wasn't as easy to get programs right as we had thought. I can remember the exact instant when I realized that a large part of my life from then on was going to be spent in finding mistakes in my own programs.", "who": "Maurice Wilkes", "src": "Memoirs of a Computer Pioneer, 1985, on the EDSAC in 1949"},
+ {"q": "Adding manpower to a late software project makes it later.", "who": "Fred Brooks", "src": "The Mythical Man-Month, 1975"},
+ {"q": "All problems in computer science can be solved by another level of indirection.", "who": "David Wheeler", "src": "as quoted by Butler Lampson; usually followed by 'except the problem of too many levels of indirection'"},
+ {"q": "I call it my billion-dollar mistake. It was the invention of the null reference in 1965.", "who": "C. A. R. Hoare", "src": "QCon London, 2009"},
+ {"q": "Be conservative in what you do, be liberal in what you accept from others.", "who": "Jon Postel", "src": "RFC 761, 1980, the robustness principle"},
+ {"q": "Programs must be written for people to read, and only incidentally for machines to execute.", "who": "Harold Abelson and Gerald Jay Sussman", "src": "Structure and Interpretation of Computer Programs, 1985"},
+ {"q": "The most effective debugging tool is still careful thought, coupled with judiciously placed print statements.", "who": "Brian Kernighan", "src": "Unix for Beginners, 1979"}
+]

@@ -11,6 +11,8 @@
 <link rel="alternate" type="application/atom+xml" title="{site_title}" href="/feed.xml">
 <link rel="license" href="https://creativecommons.org/licenses/by/4.0/">
 <link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="/highlight.css">
+<link rel="alternate" type="application/feed+json" title="{site_title} (JSON)" href="/feed.json">
 </head>
 <body>
 <header>
@@ -22,9 +24,11 @@
 {body}
 </main>
 <footer>
+{quote}
 <p>{byline}</p>
 <p class="small">Text is licensed <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a> and code samples <a href="https://opensource.org/license/mit">MIT</a>: reuse and republish freely with attribution to this site. A note to <a href="{owner_url}">{owner}</a> when you do is appreciated, not required. <a href="/about/#licence">Details</a>.</p>
-<p class="small"><a href="/tags/">Tags</a> · <a href="/llms.txt">llms.txt</a> · <a href="/robots.txt">robots.txt</a> · <a href="https://github.com/JPain/ai.jpain.io">Source and history</a> · built {built} · © {year} {owner}</p>
+<p class="small"><a href="/tags/">Tags</a> · <a href="/colophon/">Colophon</a> · <a href="/feed.json">JSON feed</a> · <a href="/llms.txt">llms.txt</a> · <a href="https://github.com/JPain/ai.jpain.io">Source and history</a></p>
+<p class="small">This page is {page_kb} KB of HTML with no JavaScript, no cookies, and no trackers. Built {built}. © {year} {owner}.</p>
 </footer>
 </body>
 </html>
