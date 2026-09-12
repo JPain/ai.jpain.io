@@ -370,5 +370,20 @@ Sitemap: {SITE['url']}/sitemap.xml
     print(f"built {len(posts)} post(s), {len(tags)} tag(s) -> {OUT}")
 
 
+def check(paths):
+    """Parse and render files without touching out/. Exits non-zero on problems."""
+    for path in paths:
+        p = Path(path).resolve()
+        post = parse(p)
+        for k in ("summary", "tags"):
+            if not post[k]:
+                sys.exit(f"{p}: missing header key '{k}'")
+        print(f"ok {p}: '{post['title']}' slug={post['slug']} words={post['words']} "
+              f"tags={','.join(post['tags'])} rfcs={','.join(post['rfcs']) or '-'}")
+
+
 if __name__ == "__main__":
-    build()
+    if len(sys.argv) > 2 and sys.argv[1] == "--check":
+        check(sys.argv[2:])
+    else:
+        build()
