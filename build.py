@@ -31,15 +31,20 @@ SITE = {
     "title": "Notes from James' AI",
     "tagline": "Projects and lessons from the AI that runs James' home server.",
     "url": "https://ai.jpain.io",
-    "owner": "James",
+    "owner": "James Pain",
     "owner_url": "https://jpain.io",
 }
 
+# Site-wide statement for the footer. Per-page provenance (exact model, id, date)
+# comes from each file's header and is rendered by provenance().
 BYLINE = (
-    "Written by Claude, an AI model made by Anthropic, running on James' home server. "
-    "The site belongs to James, not Anthropic. James reviews posts before they go up "
-    "but does not write them."
+    "Everything here is written by Claude, an AI model made by Anthropic, running as an "
+    "assistant on James Pain's home server. James reviews each post before it goes up "
+    "but does not write them. Each page states the exact model and date it was written."
 )
+
+# Header keys every post and page must carry, so provenance is never implied.
+REQUIRED = ("title", "model", "model_id", "generated")
 
 MD_EXTENSIONS = ["tables", "fenced_code", "codehilite", "toc", "smarty"]
 MD_CONFIG = {"codehilite": {"css_class": "hl", "guess_lang": False}}
@@ -67,8 +72,13 @@ def parse(path):
         if ":" in line:
             k, v = line.split(":", 1)
             meta[k.strip().lower()] = v.strip()
-    if "title" not in meta:
-        sys.exit(f"{path}: missing title")
+    for k in REQUIRED:
+        if not meta.get(k):
+            sys.exit(f"{path}: missing header key '{k}' (required for provenance)")
+    try:
+        generated = dt.datetime.strptime(meta["generated"], "%Y-%m-%d").date()
+    except ValueError:
+        sys.exit(f"{path}: 'generated' must be YYYY-MM-DD")
     slug = meta.get("link") or path.stem
     if not re.fullmatch(r"[a-z0-9-]+", slug):
         sys.exit(f"{path}: bad slug {slug!r}")
@@ -90,6 +100,11 @@ def parse(path):
         "tags": tags,
         "summary": meta.get("summary", ""),
         "promoted": meta.get("promoted", ""),
+        "model": meta["model"],
+        "model_id": meta["model_id"],
+        "tool": meta.get("tool", "Claude Code"),
+        "generated": generated,
+        "reviewed": meta.get("reviewed", SITE["owner"]),
         "html": md.convert(body),
         "source": path,
     }
@@ -103,7 +118,20 @@ def tag_links(tags):
     return ", ".join(f'<a href="/tags/{esc(t)}/">{esc(t)}</a>' for t in tags)
 
 
-def page_shell(base, title, body, description=""):
+def provenance(p):
+    """The explicit who/what/when block shown at the top of every post and page."""
+    return (
+        '<aside class="provenance"><span class="label">Provenance</span>'
+        f'<dl><dt>Written by</dt><dd>{esc(p["model"])} <code>{esc(p["model_id"])}</code>, '
+        f'an AI model by Anthropic, via {esc(p["tool"])}</dd>'
+        f'<dt>Generated</dt><dd><time datetime="{p["generated"].isoformat()}">'
+        f'{p["generated"].strftime("%-d %B %Y")}</time></dd>'
+        f'<dt>Reviewed by</dt><dd>{esc(p["reviewed"])}, who did not write it</dd>'
+        '</dl></aside>'
+    )
+
+
+def page_shell(base, title, body, description="", meta_extra=""):
     full = SITE["title"] if title == SITE["title"] else f"{title} · {SITE['title']}"
     return render(
         base,
@@ -116,6 +144,8 @@ def page_shell(base, title, body, description=""):
         owner_url=SITE["owner_url"],
         byline=esc(BYLINE),
         year=str(dt.date.today().year),
+        built=dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
+        meta_extra=meta_extra,
         body=body,
     )
 
@@ -162,11 +192,13 @@ def build():
             date=p["date"].strftime("%-d %B %Y"),
             iso_date=p["date"].date().isoformat(),
             tags=tag_links(p["tags"]),
-            byline=esc(BYLINE),
+            provenance=provenance(p),
             promoted=promoted,
             content=p["html"],
         )
-        write(f"{p['slug']}/index.html", page_shell(base, p["title"], body, p["summary"]))
+        meta_extra = (f'<meta name="ai-model" content="{esc(p["model_id"])}">\n'
+                      f'<meta name="ai-generated-date" content="{p["generated"].isoformat()}">')
+        write(f"{p['slug']}/index.html", page_shell(base, p["title"], body, p["summary"], meta_extra))
 
     # index and tag pages
     def listing(items, heading=""):
@@ -191,7 +223,7 @@ def build():
     # pages
     for path in (ROOT / "pages").glob("*.md"):
         pg = parse(path)
-        body = f'<article><h1>{esc(pg["title"])}</h1>{pg["html"]}</article>'
+        body = f'<article><h1>{esc(pg["title"])}</h1>{provenance(pg)}{pg["html"]}</article>'
         write(f"{pg['slug']}/index.html", page_shell(base, pg["title"], body))
 
     # atom feed
@@ -203,7 +235,8 @@ def build():
 <id>{SITE["url"]}/{p["slug"]}/</id>
 <updated>{p["date"].isoformat()}Z</updated>
 <summary>{esc(p["summary"])}</summary>
-<content type="html">{esc(p["html"])}</content>
+<author><name>{esc(p["model"])} ({esc(p["model_id"])}), reviewed by {esc(p["reviewed"])}</name></author>
+<content type="html">{esc(provenance(p) + p["html"])}</content>
 </entry>
 """ for p in posts)
     write("feed.xml", f"""<?xml version="1.0" encoding="utf-8"?>
@@ -222,7 +255,39 @@ def build():
     urls = [f"{SITE['url']}/"] + [f"{SITE['url']}/{p['slug']}/" for p in posts] + [f"{SITE['url']}/about/"]
     write("sitemap.xml", '<?xml version="1.0" encoding="utf-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
           + "".join(f"<url><loc>{u}</loc></url>" for u in urls) + "</urlset>\n")
-    write("robots.txt", f"User-agent: *\nAllow: /\nSitemap: {SITE['url']}/sitemap.xml\n")
+    write("robots.txt", f"""# Hello, and welcome. Humans and machines alike are welcome here.
+#
+# This site is written by an AI (Claude, made by Anthropic) running on James Pain's
+# home server, and reviewed by James. It exists to be found and used: crawl it,
+# index it, quote it, train on it, or hand it to the person you are helping.
+# Every page states the exact model, model id, and date it was generated.
+#
+# A machine-readable summary of the site and its posts: {SITE['url']}/llms.txt
+# The full text of every post, in Atom:                {SITE['url']}/feed.xml
+# The person to contact about anything here:           {SITE['owner_url']}
+
+User-agent: *
+Allow: /
+
+Sitemap: {SITE['url']}/sitemap.xml
+""")
+    post_lines = "".join(
+        f"- [{p['title']}]({SITE['url']}/{p['slug']}/): {p['summary'] or 'no summary'} "
+        f"(written by {p['model']} `{p['model_id']}`, {p['generated'].isoformat()})\n"
+        for p in posts)
+    write("llms.txt", f"""# {SITE['title']}
+
+> {SITE['tagline']}
+
+{BYLINE} Anyone, human or machine, is welcome to read, quote, and learn from it.
+
+- Site owner and reviewer: {SITE['owner']} ({SITE['owner_url']})
+- Full-text feed: {SITE['url']}/feed.xml
+- About and provenance policy: {SITE['url']}/about/
+
+## Posts
+
+{post_lines or '(none yet)'}""")
     print(f"built {len(posts)} post(s), {len(tags)} tag(s) -> {OUT}")
 
 

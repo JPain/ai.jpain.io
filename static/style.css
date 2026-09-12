@@ -1,26 +1,71 @@
-:root { --bg:#fff; --fg:#222; --muted:#666; --link:#0b5fa5; --rule:#ddd; --note:#f4f1e8; --code:#f5f5f5; }
-@media (prefers-color-scheme: dark) {
-  :root { --bg:#151515; --fg:#ddd; --muted:#999; --link:#7cb7ff; --rule:#333; --note:#22201a; --code:#1f1f1f; }
+:root {
+  --bg: #faf7f1; --fg: #1f1d1a; --muted: #6b665d; --rule: #e3ddd1;
+  --accent: #b5502a; --accent-soft: #f3e4dc; --card: #f3efe6; --code: #efeae0;
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
 }
-html { font: 17px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--fg); }
-body { max-width: 42rem; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
-a { color: var(--link); }
-header { margin-bottom: 2rem; border-bottom: 1px solid var(--rule); padding-bottom: 1rem; }
-.site-title { font-size: 1.5rem; font-weight: 700; text-decoration: none; color: var(--fg); }
-.tagline { margin: .2rem 0 .6rem; color: var(--muted); }
-nav { font-size: .95rem; color: var(--muted); }
-h1 { font-size: 1.7rem; line-height: 1.25; margin: 0 0 .3rem; }
-h2 { font-size: 1.25rem; margin-top: 2rem; }
-.meta { color: var(--muted); margin: 0 0 1rem; }
-.disclosure, .promoted { background: var(--note); border-left: 3px solid var(--muted); padding: .6rem .9rem; font-size: .92rem; }
-ul.posts { list-style: none; padding: 0; }
-ul.posts li { margin: 0 0 .9rem; }
-ul.posts time { color: var(--muted); font-variant-numeric: tabular-nums; margin-right: .6rem; }
-.summary { color: var(--muted); font-size: .92rem; }
-ul.tags { columns: 2; }
-table { border-collapse: collapse; margin: 1rem 0; font-size: .95rem; }
-th, td { border: 1px solid var(--rule); padding: .3rem .6rem; text-align: left; }
-code { background: var(--code); padding: .1rem .3rem; border-radius: 3px; font-size: .9em; }
-pre { background: var(--code); padding: .8rem; overflow-x: auto; border-radius: 4px; }
-pre code { background: none; padding: 0; }
-footer { margin-top: 3rem; border-top: 1px solid var(--rule); padding-top: 1rem; color: var(--muted); font-size: .9rem; }
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #17161a; --fg: #e7e2d8; --muted: #9c968b; --rule: #2e2c33;
+    --accent: #e8926b; --accent-soft: #2e2320; --card: #201f24; --code: #232228;
+  }
+}
+* { box-sizing: border-box; }
+html { font: 18px/1.65 var(--sans); background: var(--bg); color: var(--fg); -webkit-text-size-adjust: 100%; }
+body { max-width: 44rem; margin: 0 auto; padding: 2rem 1.2rem 3rem; }
+a { color: var(--accent); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+a:hover { text-decoration-thickness: 2px; }
+
+header { margin-bottom: 2.5rem; padding-bottom: 1.2rem; border-bottom: 2px solid var(--accent); }
+.site-title { font-family: var(--serif); font-size: 2.1rem; font-weight: 600; letter-spacing: -.01em; color: var(--fg); text-decoration: none; }
+.site-title::before { content: "◍ "; color: var(--accent); }
+.tagline { margin: .3rem 0 .9rem; color: var(--muted); font-style: italic; font-family: var(--serif); font-size: 1.05rem; }
+nav { font-size: .9rem; text-transform: uppercase; letter-spacing: .06em; }
+nav a { color: var(--muted); text-decoration: none; margin-right: 1.1rem; }
+nav a:hover { color: var(--accent); }
+nav a.ext::after { content: " ↗"; }
+
+h1 { font-family: var(--serif); font-size: 2rem; line-height: 1.2; margin: 0 0 .5rem; letter-spacing: -.01em; }
+h2 { font-family: var(--serif); font-size: 1.4rem; margin: 2.2rem 0 .6rem; }
+h3 { font-size: 1.05rem; margin: 1.6rem 0 .4rem; }
+p, li { max-width: 40rem; }
+.meta { color: var(--muted); font-size: .92rem; margin: 0 0 1.2rem; }
+.meta time { font-family: var(--mono); }
+.meta .tags::before { content: " · "; }
+
+.provenance { background: var(--card); border-left: 4px solid var(--accent); padding: .8rem 1rem .6rem; margin: 0 0 1.6rem; font-size: .9rem; border-radius: 0 6px 6px 0; }
+.provenance .label { display: block; font-family: var(--mono); font-size: .72rem; text-transform: uppercase; letter-spacing: .12em; color: var(--accent); margin-bottom: .35rem; }
+.provenance dl { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: .15rem 1rem; }
+.provenance dt { color: var(--muted); }
+.provenance dd { margin: 0; }
+.promoted { background: var(--accent-soft); padding: .7rem 1rem; border-radius: 6px; font-size: .92rem; }
+
+ul.posts { list-style: none; padding: 0; margin: 0; }
+ul.posts li { padding: .9rem 0; border-bottom: 1px solid var(--rule); }
+ul.posts time { display: block; font-family: var(--mono); font-size: .8rem; color: var(--muted); margin-bottom: .15rem; }
+ul.posts a { font-family: var(--serif); font-size: 1.25rem; text-decoration: none; color: var(--fg); }
+ul.posts a:hover { color: var(--accent); }
+.summary { display: block; color: var(--muted); font-size: .95rem; margin-top: .2rem; }
+ul.tags { columns: 2; list-style: none; padding: 0; }
+
+table { border-collapse: collapse; margin: 1.2rem 0; font-size: .92rem; width: 100%; }
+th { text-align: left; border-bottom: 2px solid var(--accent); padding: .4rem .6rem; }
+td { border-bottom: 1px solid var(--rule); padding: .4rem .6rem; vertical-align: top; }
+code { font-family: var(--mono); font-size: .86em; background: var(--code); padding: .1rem .35rem; border-radius: 4px; }
+pre { background: var(--code); padding: .9rem 1rem; overflow-x: auto; border-radius: 6px; line-height: 1.45; }
+pre code { background: none; padding: 0; font-size: .84rem; }
+blockquote { margin: 1.2rem 0; padding: .2rem 1rem; border-left: 3px solid var(--rule); color: var(--muted); }
+em { font-style: italic; }
+hr { border: 0; border-top: 1px solid var(--rule); margin: 2rem 0; }
+img { max-width: 100%; height: auto; border-radius: 6px; }
+
+footer { margin-top: 3.5rem; padding-top: 1.2rem; border-top: 1px solid var(--rule); color: var(--muted); font-size: .9rem; }
+footer .small { font-size: .8rem; }
+@media (max-width: 40rem) {
+  html { font-size: 17px; }
+  .site-title { font-size: 1.7rem; }
+  nav a { margin-right: .8rem; }
+  .provenance dl { grid-template-columns: 1fr; gap: 0; }
+  .provenance dt { margin-top: .3rem; }
+}
