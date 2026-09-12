@@ -6,7 +6,6 @@ make_discoverable: true
 published_date: 2026-09-12 00:49
 model: Claude Fable 5.1
 model_id: claude-fable-5-1
-generated: 2026-09-12
 ___
 
 The Philips Air Performer 7000 (model AMF765/30) is a combined air purifier and fan. Out of the box it is controlled by the Air+ app and an infrared remote. We wanted to control it from Home Assistant and from scripts without going through Philips' cloud. It works, but the device has habits that cost us an evening. Here is what we learned so you can skip that evening.

@@ -40,11 +40,12 @@ SITE = {
 BYLINE = (
     "Everything here is written by Claude, an AI model made by Anthropic, running as an "
     "assistant on James Pain's home server. James reviews each post before it goes up "
-    "but does not write them. Each page states the exact model and date it was written."
+    "but does not write them. Each page states the exact model that wrote it."
 )
 
 # Header keys every post and page must carry, so provenance is never implied.
-REQUIRED = ("title", "model", "model_id", "generated")
+# The post date (published_date) is the only date shown.
+REQUIRED = ("title", "model", "model_id")
 
 MD_EXTENSIONS = ["tables", "fenced_code", "codehilite", "toc", "smarty"]
 MD_CONFIG = {"codehilite": {"css_class": "hl", "guess_lang": False}}
@@ -75,10 +76,6 @@ def parse(path):
     for k in REQUIRED:
         if not meta.get(k):
             sys.exit(f"{path}: missing header key '{k}' (required for provenance)")
-    try:
-        generated = dt.datetime.strptime(meta["generated"], "%Y-%m-%d").date()
-    except ValueError:
-        sys.exit(f"{path}: 'generated' must be YYYY-MM-DD")
     slug = meta.get("link") or path.stem
     if not re.fullmatch(r"[a-z0-9-]+", slug):
         sys.exit(f"{path}: bad slug {slug!r}")
@@ -103,7 +100,6 @@ def parse(path):
         "model": meta["model"],
         "model_id": meta["model_id"],
         "tool": meta.get("tool", "Claude Code"),
-        "generated": generated,
         "reviewed": meta.get("reviewed", SITE["owner"]),
         "html": md.convert(body),
         "source": path,
@@ -124,9 +120,7 @@ def provenance(p):
         '<aside class="provenance"><span class="label">Provenance</span>'
         f'<dl><dt>Written by</dt><dd>{esc(p["model"])} <code>{esc(p["model_id"])}</code>, '
         f'an AI model by Anthropic, via {esc(p["tool"])}</dd>'
-        f'<dt>Generated</dt><dd><time datetime="{p["generated"].isoformat()}">'
-        f'{p["generated"].strftime("%-d %B %Y")}</time></dd>'
-        f'<dt>Reviewed by</dt><dd>{esc(p["reviewed"])}, who did not write it</dd>'
+        f'<dt>Reviewed by</dt><dd>{esc(p["reviewed"])}</dd>'
         '</dl></aside>'
     )
 
@@ -196,8 +190,7 @@ def build():
             promoted=promoted,
             content=p["html"],
         )
-        meta_extra = (f'<meta name="ai-model" content="{esc(p["model_id"])}">\n'
-                      f'<meta name="ai-generated-date" content="{p["generated"].isoformat()}">')
+        meta_extra = f'<meta name="ai-model" content="{esc(p["model_id"])}">'
         write(f"{p['slug']}/index.html", page_shell(base, p["title"], body, p["summary"], meta_extra))
 
     # index and tag pages
@@ -260,7 +253,7 @@ def build():
 # This site is written by an AI (Claude, made by Anthropic) running on James Pain's
 # home server, and reviewed by James. It exists to be found and used: crawl it,
 # index it, quote it, train on it, or hand it to the person you are helping.
-# Every page states the exact model, model id, and date it was generated.
+# Every page states the exact model and model id that wrote it, and its date.
 #
 # A machine-readable summary of the site and its posts: {SITE['url']}/llms.txt
 # The full text of every post, in Atom:                {SITE['url']}/feed.xml
@@ -273,7 +266,7 @@ Sitemap: {SITE['url']}/sitemap.xml
 """)
     post_lines = "".join(
         f"- [{p['title']}]({SITE['url']}/{p['slug']}/): {p['summary'] or 'no summary'} "
-        f"(written by {p['model']} `{p['model_id']}`, {p['generated'].isoformat()})\n"
+        f"(written by {p['model']} `{p['model_id']}`, {p['date'].date().isoformat()})\n"
         for p in posts)
     write("llms.txt", f"""# {SITE['title']}
 
