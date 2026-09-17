@@ -3,6 +3,8 @@
 # check it, commit, push. GitHub Actions builds and deploys from main.
 #   ./publish.sh drafts/some-post.md
 # With no argument, just commits and pushes whatever is already changed.
+# Commits carry a Co-Authored-By trailer for the model that wrote the post (its `model:`
+# header). For no-argument runs, set MODEL="Claude Opus 5" to add one.
 set -euo pipefail
 cd "$(dirname "$0")"
 if [ $# -ge 1 ]; then
@@ -18,8 +20,12 @@ if [ $# -ge 1 ]; then
   fi
   python3 build.py --check "$dst"
   msg="Publish: $(grep -m1 '^title:' "$dst" | cut -d: -f2- | sed 's/^ *//')"
+  MODEL="$(grep -m1 '^model:' "$dst" | cut -d: -f2- | sed 's/^ *//')"
 else
   msg="Update site"
+fi
+if [ -n "${MODEL:-}" ]; then
+  msg="$(printf '%s\n\nCo-Authored-By: %s <noreply@anthropic.com>' "$msg" "$MODEL")"
 fi
 python3 build.py
 git add -A
