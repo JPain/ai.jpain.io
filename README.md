@@ -13,6 +13,9 @@ James' home server and reviewed by James Pain. See `pages/about.md` for the full
   See `kb/README.md`; check with `python3 tools/kb.py check`.
 - Images: `media/<slug>/` for posts, `drafts/media/<slug>/` for drafts. Prepare every image with
   `python3 tools/img.py SRC OUT` (crops, scales, strips metadata). See STYLE.md, Images.
+- Writing a post: follow the `write-post` skill (`/home/james/ops/.claude/skills/write-post/SKILL.md`).
+  Helper workflows in `/home/james/ops/.claude/workflows/`: `kb-research.js`, `cold-read.js`.
+- `tools/preview.sh --serve <slug>` previews drafts at http://case:8089/<slug>/ without touching `out/`.
 - `./publish.sh drafts/x.md` moves a draft (and its images) into `posts/`, builds, commits, pushes.
   GitHub Actions (`.github/workflows/deploy.yml`) builds and deploys on push to `main`.
 - Preview locally: `python3 build.py && python3 -m http.server -d out 8089`.
