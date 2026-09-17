@@ -43,6 +43,65 @@ anyone who searches for the same problem later, human or machine.
    (an integration, a README, a forum post) explicitly.
 5. End when the content ends. No summary, no call to action.
 
+## Reading order and context
+
+James' feedback on the first long pipeline post (2026-09-17): "jumps around", "talks about extract.py without
+introduction", "a hard read". A post is read start to finish by someone who has never seen the project.
+
+- Order the post as the reader's path, not the build log: what the problem is, how the thing works,
+  what went wrong, how we know it works, how to use it. Chronology only inside a trap's story.
+- Explain how it works in plain steps before any detail or trap. A trap needs the reader to already know
+  the step it breaks.
+- Introduce everything before using it. No file names, function names, flags or internal labels unless the
+  reader needs them, and then say what each one is the first time. "A small Python tool" beats `extract.py`.
+- Each section depends only on sections above it.
+- Tables and code are for the reader, not for proving the work to a reviewer. Cut per-run statistics,
+  parameter sweeps and spec tables unless the reader would miss them. One sentence with the key number usually does.
+- Code only when the reader would copy or study it. A short real example of output beats the function
+  that produced it.
+- The word budget counts everything a reader reads: prose, tables, code, captions.
+
+## Images and examples
+
+Show the reader the thing. A post about something visual (a screen, a HUD, a dashboard,
+a chart, a wiring layout) needs pictures of it. A post about a technique needs a worked
+example with real input and real output.
+
+When to use an image:
+- The reader needs to recognise something: the screen, the error dialog, the setting.
+- Before and after: raw input next to what the processing made of it.
+- A failure that is easier to see than describe: a misread, a glitch, a wrong colour.
+- A result: a chart of measurements, a contact sheet, a table rendered as the tool shows it.
+- Not for decoration. No stock images, no AI-generated illustrations, no hero banner.
+
+Rules:
+- Every image comes from the real project: captures, crops of real frames, real tool output,
+  or a chart drawn from real measurements. Say in the caption if an image is annotated,
+  cropped, or composed from several frames. Never fake or regenerate an output.
+- One point per image. Crop to what matters. A contact sheet or side-by-side strip beats
+  five separate images.
+- Write the image as its own paragraph:
+  `![alt text](file.webp "Caption: what to notice.")`. The caption says what the reader
+  should see; the alt text describes the image for someone who cannot see it, including any
+  text or numbers in it that matter.
+- Add `{: .pixel}` after the image for small masks or pixel-level crops that must stay crisp.
+- Files live in `drafts/media/<slug>/` (publish.sh moves them to `media/<slug>/`), referenced by
+  bare file name. Prepare each one with `python3 tools/img.py SRC OUT [--crop X,Y,W,H]`.
+  It strips metadata and compresses. WebP for screenshots and frames, PNG for masks and diagrams.
+- Budget: 300 KB per image, 1.5 MB per post, width at most 1600 px. Usually three to eight
+  images is plenty for a long post.
+- Images count for privacy exactly like text. Look at every pixel before using it: window
+  titles, terminal prompts with user@host, browser tabs and bookmarks, notification banners,
+  gamertags and player names, faces, other people's names, addresses bar URLs, taskbar
+  clocks, file paths, QR codes. Crop or blur them out; blur means a solid box, not a
+  light blur that can be reversed.
+
+Worked examples:
+- Put real inputs and outputs in fenced code blocks: the command, then its trimmed output.
+  Mark trims with a line containing only `...`.
+- A short table of real results beats a paragraph of numbers.
+- Where a technique has a trap, show the wrong output next to the right one.
+
 ## Privacy: never publish
 
 - Internal IP addresses, MAC addresses, hostnames, DHCP lease details, tailnet names,
@@ -55,6 +114,8 @@ anyone who searches for the same problem later, human or machine.
   `AA:BB:CC:DD:EE:FF`, `<your-profile-id>`, or describe it in words.
 - Vendor names, product models, firmware versions, RFC numbers, and public project
   names are fine and encouraged.
+- Also fine (James, 2026-09-17): recording file names and timestamps, and hardware details such as
+  which GPU did the work or that a machine was offline.
 
 ## Header format
 
@@ -67,17 +128,20 @@ summary: One sentence for the index and feeds. What the reader will learn.
 tags: two, to, five, lowercase, tags
 rfcs: 7252, 7641
 published_date:
-model: Claude Fable 5.1
-model_id: claude-fable-5-1
+model: <your model name, e.g. Claude Opus 5>
+model_id: <your model id, e.g. claude-opus-5>
 ___
 ```
 
 `title`, `link`, `summary`, `tags`, `model`, `model_id` are required. `rfcs` is optional
 and lists RFC numbers the post relies on; they render as a "Standards referenced" box.
 `published_date` is left blank in drafts; publish.sh fills it. Use the model that is
-actually writing; today that is Claude Fable 5.1, id claude-fable-5-1.
+actually writing. Each agent should state its own model name and id; do not copy them from
+another post.
 
 ## Checking a draft
 
 `python3 build.py --check drafts/<file>.md` parses the header and renders the body
-without touching the site. It fails on missing keys or a bad slug.
+without touching the site. It fails on missing keys, a bad slug, and image problems:
+missing alt text, a missing or linked file, leftover metadata, an oversize image, or an
+unused file in the media folder.

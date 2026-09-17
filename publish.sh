@@ -12,6 +12,11 @@ if [ $# -ge 1 ]; then
     sed -i "s/^published_date:\s*$/published_date: $(date '+%Y-%m-%d %H:%M')/" "$src"
   fi
   git mv "$src" "$dst" 2>/dev/null || mv "$src" "$dst"
+  slug="$(grep -m1 '^link:' "$dst" | cut -d: -f2- | tr -d ' ')"; slug="${slug:-$(basename "$src" .md)}"
+  if [ -d "drafts/media/$slug" ]; then
+    mkdir -p media && rm -rf "media/$slug" && mv "drafts/media/$slug" "media/$slug"
+  fi
+  python3 build.py --check "$dst"
   msg="Publish: $(grep -m1 '^title:' "$dst" | cut -d: -f2- | sed 's/^ *//')"
 else
   msg="Update site"
