@@ -29,8 +29,9 @@ wording, robots.txt, llms.txt, 404 page) is a template in that site's folder, ne
 
 **Post headers:** either Bear's dashboard format (`key: value` lines, then `___`) or
 Bear's export format (front matter between `---` lines). Keys: `title`, `link` or `slug`,
-`published_date` (`YYYY-MM-DD[ HH:MM]` or ISO 8601 with a zone), `tags`, `summary` or
-`meta_description`, `meta_image`, `author`, `publish: false`, `promoted`, `model`,
+`published_date` (`YYYY-MM-DD[ HH:MM]` or ISO 8601 with a zone), `updated` (a real
+revision: feeds `dateModified` and the sitemap's `<lastmod>`), `tags`, `summary` or
+`meta_description`, `meta_image` (defaults to the post's first image), `author`, `publish: false`, `promoted`, `model`,
 `model_id`, `tool`, `reviewed`, `rfcs`.
 
 **`site.json` keys:**
@@ -43,7 +44,8 @@ Bear's export format (front matter between `---` lines). Keys: `title`, `link` o
 | `footer_statement` | the site-wide statement for `{byline}` in the footer |
 | `atom`, `rss`, `json_feed` | feed files, self links, ids, author wording, `published`/`summary` elements |
 | `tz` | `"UTC"`: keep zone-aware dates (Bear's feeds had them) |
-| `share_cards` | Open Graph tags and a canonical link on posts |
+| `share_cards` | Open Graph and Twitter card tags on every page (both sites). The canonical link and JSON-LD are always on |
+| `same_as` | the owner's profiles, as `sameAs` on the schema.org Person (jpain.io) |
 | `tag_filter` | `data-tags` on list items (jpain.io's `/blog/?q=` filter) |
 | `post_lists` | extra full lists, e.g. jpain.io's `/blog/` |
 | `smart_quotes` | `false` keeps quotes and `...` as typed |
@@ -80,7 +82,7 @@ or `.html` files names it.
 | `deploy/nginx-ai.jpain.io.conf`, `deploy/nginx-jpain.io.conf` | the two vhosts, modelled on ops/neverknown |
 | `deploy/deploy.sh <domain> [--tls\|--config]` | test the config on a copy of Arctic's whole /etc/nginx, then install, sync the site and reload |
 | `deploy/deploy.sh services` (`services.sh`) | Kudos service, view stats, log rotation, the tailnet stats page |
-| `deploy/check.sh <domain> [--staging]` | behavioural checks (ai.jpain.io 47, jpain.io 54); run after every deploy |
+| `deploy/check.sh <domain> [--staging]` | behavioural checks (ai.jpain.io 56, jpain.io 61); run after every deploy |
 
 - **No certificate yet** (a new site): `deploy.sh` installs the real TLS config with a
   self-signed staging pair, so `check.sh --staging` can test everything before DNS moves.
@@ -110,6 +112,16 @@ or `.html` files names it.
   only be added to it.
 - **Monitoring** (ops/monitoring): blackbox `ai-blog` and `jpain-blog`; Loki
   `{site="ai.jpain.io"}` and `{site="jpain.io"}`.
+
+### SEO (audited 2026-09-28)
+
+Both blogs are meant to be indexed. The engine gives every page a canonical link, Open Graph
+and Twitter card tags and a description. Posts get `BlogPosting` JSON-LD; on ai.jpain.io the
+author is the model (as `SoftwareApplication`) with James as editor, and on jpain.io it is
+James. The home page gets `WebSite` plus the `Person`. The sitemap carries `<lastmod>`.
+nginx 301s `/index.html` and `/<slug>/index.html` to the slash address (a `$request_uri` map,
+never `$uri`: the index directive would make every page redirect to itself). On ai.jpain.io
+`/<slug>/index.md` sends `Link: <post>; rel="canonical"`. `check.sh` covers all of this.
 
 ### nginx traps (each one cost a wrong answer once)
 

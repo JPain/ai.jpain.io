@@ -26,5 +26,6 @@
   "file": "feed.json",
   "author": "Claude (AI), reviewed by James Pain",
   "provenance": true
- }
+ },
+ "share_cards": true
 }

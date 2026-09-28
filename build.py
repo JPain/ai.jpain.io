@@ -24,7 +24,8 @@ Post header: either Bear Blog's dashboard format (`key: value` lines, then `___`
 front matter between `---` lines, as in Bear's export. Keys used: title (required), link or slug
 (defaults from the filename), published_date (YYYY-MM-DD, YYYY-MM-DD HH:MM or ISO 8601 with a
 zone; defaults to now), tags (comma-separated), summary or meta_description (one line for the
-index, feed and description meta), meta_image (share image), author (byline override),
+index, feed and description meta), meta_image (share image; defaults to the post's first image),
+updated (date of a real revision: dateModified and sitemap lastmod), author (byline override),
 publish (false = not built), promoted (URL of a rewritten version on jpain.io), model and
 model_id (provenance; required on ai.jpain.io). Everything else is ignored.
 """
@@ -92,7 +93,7 @@ def figures(html_text, folder):
         a = dict(ATTR.findall(m.group(1)))
         extra = ""
         f = folder / a.get("src", "")
-        if "://" not in a.get("src", "") and f.is_file():
+        if "://" not in a.get("src", "") and f.is_file() and "width" not in a:
             w, h = image_size(f)
             if w:
                 extra = f' width="{w}" height="{h}"'
@@ -213,6 +214,9 @@ def parse(path):
     if when is None:
         when = dt.datetime.now()
     when = site_date(when)
+    # "updated:" marks a real revision of an older post; it feeds dateModified and sitemap <lastmod>.
+    updated = parse_date(meta.get("updated", "")) if meta.get("updated") else None
+    updated = max(when, site_date(updated)) if updated else when
     tags = [t.strip() for t in meta.get("tags", "").split(",") if t.strip()]
     # "smart_quotes": false keeps quotes and ... exactly as typed (jpain.io, as on Bear).
     exts = [e for e in MD_EXTENSIONS if SITE.get("smart_quotes", True) or e != "smarty"]
@@ -230,6 +234,7 @@ def parse(path):
         "slug": slug,
         "title": meta["title"],
         "date": when,
+        "updated": updated,
         "tags": tags,
         "summary": meta.get("summary") or meta.get("meta_description", ""),
         "image": meta.get("meta_image", ""),
@@ -261,6 +266,16 @@ def git_info(path):
                            capture_output=True, text=True, check=True).stdout.strip()
         return {"hash": log[0], "date": log[1][:10], "revisions": int(n or 0),
                 "history": f"{repo}/commits/main/{rel}", "blob": f"{repo}/blob/main/{rel}"}
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return None
+
+
+def git_date(path):
+    """When a file was last committed, or None (not committed, or no git)."""
+    try:
+        out = subprocess.run(["git", "log", "-1", "--format=%cI", "--", str(path)], cwd=path.parent,
+                             capture_output=True, text=True, check=True).stdout.strip()
+        return site_date(dt.datetime.fromisoformat(out)) if out else None
     except (subprocess.CalledProcessError, FileNotFoundError):
         return None
 
@@ -313,8 +328,54 @@ def rfc_box(codes):
     return f'<aside class="rfcs"><span class="label">Standards referenced</span><ul>{items}</ul></aside>'
 
 
-def page_shell(base, title, body, description="", meta_extra="", key=""):
+def owner_ld():
+    """The site's owner as a schema.org Person. Both blogs name the same one, by the same @id."""
+    person = {"@type": "Person", "@id": f'{SITE["owner_url"]}/#person', "name": SITE["owner"],
+              "url": SITE["owner_url"]}
+    if SITE.get("same_as"):
+        person["sameAs"] = SITE["same_as"]
+    return person
+
+
+def model_ld(p):
+    """The model that wrote (or helped write) a post. It is not a Person, so it is described as software."""
+    return {"@type": "SoftwareApplication", "name": p["model"], "softwareVersion": p["model_id"],
+            "applicationCategory": "AI language model", "creator": {"@type": "Organization", "name": "Anthropic"}}
+
+
+def json_ld(data):
+    """A <script type="application/ld+json"> block. It is data, so script-src in the CSP doesn't apply."""
+    text = json.dumps({"@context": "https://schema.org", **data}, ensure_ascii=False, separators=(",", ":"))
+    text = text.replace("</", "<\\/")   # a "</script>" inside a string must not end the block
+    return f'\n<script type="application/ld+json">{text}</script>'
+
+
+def post_image(p):
+    """The share image: meta_image if set, otherwise the first image the post shows."""
+    url = f'{SITE["url"]}/{p["slug"]}/'
+    src = p["image"] or next((i["src"] for i in p["images"] if i.get("src") and "://" not in i["src"]), "")
+    return src if "://" in src or not src else url + src
+
+
+def head_meta(path, title, description, og_type="website", image=""):
+    """Canonical link on every page; Open Graph and Twitter card tags where site.json has share_cards."""
+    url = SITE["url"] + path
+    out = f'<link rel="canonical" href="{url}">'
+    if SITE.get("share_cards"):
+        tags = [("og:type", og_type), ("og:title", title), ("og:url", url), ("og:site_name", SITE["title"]),
+                ("og:description", description or SITE["tagline"])]
+        if image:
+            tags.append(("og:image", image))
+        out += "".join(f'\n<meta property="{k}" content="{esc(v)}">' for k, v in tags)
+        out += f'\n<meta name="twitter:card" content="{"summary_large_image" if image else "summary"}">'
+    return out
+
+
+def page_shell(base, title, body, description="", meta_extra="", key="", path=None):
     full = SITE["title"] if title == SITE["title"] else f"{title} · {SITE['title']}"
+    if path is not None:
+        meta_extra = head_meta(path, SITE["title"] if title == SITE["title"] else title,
+                               description) + meta_extra
     return render(
         base,
         page_title=esc(full),
@@ -334,20 +395,42 @@ def page_shell(base, title, body, description="", meta_extra="", key=""):
 
 
 def post_meta(p):
-    """Extra <head> tags for a post: provenance when a model wrote it, share cards everywhere but ai.jpain.io."""
-    out = f'<meta name="ai-model" content="{esc(p["model_id"])}">' if p["model_id"] else ""
+    """Extra <head> tags for a post: provenance when a model wrote it, canonical, share cards, BlogPosting."""
+    url = f'{SITE["url"]}/{p["slug"]}/'
+    image = post_image(p)
+    out = f'<meta name="ai-model" content="{esc(p["model_id"])}">\n' if p["model_id"] else ""
+    out += head_meta(f'/{p["slug"]}/', p["title"], p["summary"], "article", image)
     if SITE.get("share_cards"):
-        url = f'{SITE["url"]}/{p["slug"]}/'
-        tags = [("og:type", "article"), ("og:title", p["title"]), ("og:url", url),
-                ("og:site_name", SITE["title"])]
-        if p["summary"]:
-            tags.append(("og:description", p["summary"]))
-        if p["image"]:
-            img = p["image"] if "://" in p["image"] else f'{url}{p["image"]}'
-            tags.append(("og:image", img))
-        out += "".join(f'\n<meta property="{k}" content="{esc(v)}">' for k, v in tags)
-        out += f'\n<link rel="canonical" href="{url}">'
-    return out
+        out += f'\n<meta property="article:published_time" content="{iso(p["date"])}">'
+        if p["updated"] != p["date"]:
+            out += f'\n<meta property="article:modified_time" content="{iso(p["updated"])}">'
+    ld = {"@type": "BlogPosting", "@id": f"{url}#post", "url": url, "mainEntityOfPage": url,
+          "headline": p["title"], "datePublished": iso(p["date"]), "dateModified": iso(p["updated"]),
+          "inLanguage": "en", "isPartOf": {"@id": f'{SITE["url"]}/#website'}, "publisher": owner_ld()}
+    if p["summary"]:
+        ld["description"] = p["summary"]
+    if p["tags"]:
+        ld["keywords"] = p["tags"]
+    if image:
+        ld["image"] = image
+    if SITE["byline"] == "model":
+        # ai.jpain.io: the model wrote it and James reviewed it; say exactly that.
+        ld["author"] = model_ld(p)
+        ld["editor"] = owner_ld()
+    else:
+        ld["author"] = owner_ld()
+        if p["model_id"]:
+            ld["contributor"] = model_ld(p)
+    return out + json_ld(ld)
+
+
+def home_meta():
+    """JSON-LD for the home page: the site and who runs it."""
+    return json_ld({"@graph": [
+        {"@type": "WebSite", "@id": f'{SITE["url"]}/#website', "url": f'{SITE["url"]}/', "name": SITE["title"],
+         "description": SITE["tagline"], "inLanguage": "en", "publisher": {"@id": f'{SITE["owner_url"]}/#person'}},
+        owner_ld(),
+    ]})
 
 
 def write(rel, content, image_bytes=0):
@@ -437,9 +520,11 @@ def build():
         return render(template, heading=heading, posts=rows or "<li>Nothing yet.</li>")
 
     home_t = optional_template("home.html")
-    write("index.html", page_shell(base, SITE["title"], listing(posts, template=home_t or index_t)))
+    write("index.html", page_shell(base, SITE["title"], listing(posts, template=home_t or index_t),
+                                   meta_extra=home_meta(), path="/"))
     for extra in SITE.get("post_lists", []):   # e.g. jpain.io's /blog/, kept from Bear
-        write(f"{extra['path']}/index.html", page_shell(base, extra["title"], listing(posts, f"<h1>{esc(extra['title'])}</h1>")))
+        write(f"{extra['path']}/index.html", page_shell(base, extra["title"], listing(posts, f"<h1>{esc(extra['title'])}</h1>"),
+                                                        f"Every post on {SITE['title']}, newest first.", path=f"/{extra['path']}/"))
     # Tags that differ only in capitals ("AI", "ai") are one tag with one page.
     by_slug = {}
     for p in posts:
@@ -449,17 +534,21 @@ def build():
     for ts in tags:
         name = sorted(by_slug[ts])[0]
         items = [p for p in posts if any(tag_slug(t) == ts for t in p["tags"])]
-        write(f"tags/{ts}/index.html", page_shell(base, f"Tag: {name}", listing(items, f"<h1>Tagged “{esc(name)}”</h1>")))
+        write(f"tags/{ts}/index.html", page_shell(base, f"Tag: {name}", listing(items, f"<h1>Tagged “{esc(name)}”</h1>"),
+                                                  f"Posts tagged “{name}” on {SITE['title']}.", path=f"/tags/{ts}/"))
     if tags:
         tl = "".join(f'<li><a href="/tags/{esc(ts)}/">{esc(sorted(by_slug[ts])[0])}</a></li>' for ts in tags)
-        write("tags/index.html", page_shell(base, "Tags", f"<h1>Tags</h1><ul class=\"tags\">{tl}</ul>"))
+        write("tags/index.html", page_shell(base, "Tags", f"<h1>Tags</h1><ul class=\"tags\">{tl}</ul>",
+                                            f"Every tag used on {SITE['title']}.", path="/tags/"))
 
     # pages
+    page_dates = {}
     for path in sorted((ROOT / "pages").glob("*.md")):
         pg = parse(path)
         body = (f'<article><h1>{esc(pg["title"])}</h1><p class="meta">{byline(pg)}</p>'
                 f'{pg["html"]}</article>')
-        write(f"{pg['slug']}/index.html", page_shell(base, pg["title"], body))
+        write(f"{pg['slug']}/index.html", page_shell(base, pg["title"], body, pg["summary"], path=f"/{pg['slug']}/"))
+        page_dates[pg["slug"]] = git_date(path)
 
     feeds(posts)
 
@@ -469,9 +558,14 @@ def build():
         write("404.html", page_shell(base, "404", body_404))
 
     # sitemap + robots + llms.txt
-    urls = [f"{SITE['url']}/"] + [f"{SITE['url']}/{p['slug']}/" for p in posts] + [f"{SITE['url']}/{pg.stem}/" for pg in sorted((ROOT / "pages").glob("*.md"))]
-    write("sitemap.xml", '<?xml version="1.0" encoding="utf-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
-          + "".join(f"<url><loc>{u}</loc></url>" for u in urls) + "</urlset>\n")
+    # <lastmod>: a post's updated (or published) date, the newest post for the lists, a page's last commit.
+    newest = max((p["updated"] for p in posts), default=None)
+    entries = [("/", newest)] + [(f"/{p['slug']}/", p["updated"]) for p in posts] \
+        + [(f"/{x['path']}/", newest) for x in SITE.get("post_lists", [])] \
+        + [(f"/{slug}/", when) for slug, when in page_dates.items()]
+    write("sitemap.xml", '<?xml version="1.0" encoding="utf-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+          + "".join(f"<url><loc>{SITE['url']}{u}</loc>" + (f"<lastmod>{when.date().isoformat()}</lastmod>" if when else "")
+                    + "</url>\n" for u, when in entries) + "</urlset>\n")
     fill = dict(site_url=SITE["url"], site_title=SITE["title"], tagline=SITE["tagline"], owner=SITE["owner"],
                 owner_url=SITE["owner_url"], footer_statement=SITE["footer_statement"])
     robots = optional_template("robots.txt")

@@ -38,6 +38,19 @@ chk "HEAD home 200"                       "200"                   "$(code -I "ht
 chk "post 200"                            "200"                   "$(code "https://$D$POST")"
 chk "post without slash -> 301 to slash"  "301 ${POST}"           "$(loc "https://$D${POST%/}")"
 [[ -n "$IMG" ]] && chk "post image 200"   "200"                   "$(code "https://$D$POST$IMG")"
+
+echo "--- One address per page (SEO audit 2026-09-28)"
+chk "/index.html -> 301 /"                "301 /"                 "$(loc "https://$D/index.html")"
+chk "post index.html -> 301 to post"      "301 ${POST}"           "$(loc "https://$D${POST}index.html")"
+chk "post names itself canonical"         "1"                     "$("${C[@]}" "https://$D$POST" | grep -c "<link rel=\"canonical\" href=\"https://$D$POST\">")"
+chk "home names itself canonical"         "1"                     "$("${C[@]}" "https://$D/" | grep -c "<link rel=\"canonical\" href=\"https://$D/\">")"
+chk "post has BlogPosting JSON-LD"        "1"                     "$("${C[@]}" "https://$D$POST" | grep -c '"@type":"BlogPosting"')"
+chk "post has a share card"               "1"                     "$("${C[@]}" "https://$D$POST" | grep -c '<meta property="og:title"')"
+chk "sitemap has <lastmod> per URL"       "yes"                   "$(s=$("${C[@]}" "https://$D/sitemap.xml"); [[ $(grep -o '<loc>' <<<"$s" | wc -l) -eq $(grep -o '<lastmod>' <<<"$s" | wc -l) ]] && echo yes || echo no)"
+if [[ "$D" == "ai.jpain.io" ]]; then
+  chk "markdown names the post canonical" "<https://$D${POST}>; rel=\"canonical\"" "$(hdr link "https://$D${POST}index.md")"
+  chk "no Link header on a normal page"   ""                      "$(hdr link "https://$D$POST")"
+fi
 if [[ "$D" == "ai.jpain.io" ]]; then
   chk "post markdown 200"                 "200"                   "$(code "https://$D${POST}index.md")"
   chk "post markdown is text/markdown"    "text/markdown; charset=utf-8" "$(ctype "https://$D${POST}index.md")"

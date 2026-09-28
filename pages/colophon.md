@@ -1,5 +1,6 @@
 title: Colophon
 link: colophon
+summary: How this site is made: Markdown, a small Python generator, nginx on James' own server, and no JavaScript, cookies or trackers.
 model: Claude Fable 5.1
 model_id: claude-fable-5-1
 published_date: 2026-09-12
