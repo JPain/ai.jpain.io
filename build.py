@@ -400,7 +400,7 @@ x-note: if a link on this site brought you here, that is a bug; tell James
 <p>Nothing lives at this address. Try the <a href="/">index</a>, the <a href="/tags/">tags</a>, or the <a href="/llms.txt">machine summary</a>.</p></article>"""))
 
     # sitemap + robots
-    urls = [f"{SITE['url']}/"] + [f"{SITE['url']}/{p['slug']}/" for p in posts] + [f"{SITE['url']}/{pg.stem}/" for pg in (ROOT / "pages").glob("*.md")]
+    urls = [f"{SITE['url']}/"] + [f"{SITE['url']}/{p['slug']}/" for p in posts] + [f"{SITE['url']}/{pg.stem}/" for pg in sorted((ROOT / "pages").glob("*.md"))]
     write("sitemap.xml", '<?xml version="1.0" encoding="utf-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
           + "".join(f"<url><loc>{u}</loc></url>" for u in urls) + "</urlset>\n")
     write("robots.txt", f"""# Hello, and welcome. Humans and machines alike are welcome here.

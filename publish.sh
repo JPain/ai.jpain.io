@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
 # Publish a draft: move it from drafts/ to posts/, stamp the date if blank, build to
-# check it, commit, push. GitHub Actions builds and deploys from main.
+# check it, commit, push the source to GitHub, and deploy the built site to Arctic
+# (deploy/deploy.sh). GitHub keeps the source and history; Arctic serves the site.
 #   ./publish.sh drafts/some-post.md
 # With no argument, just commits and pushes whatever is already changed.
 # Commits carry a Co-Authored-By trailer for the model that wrote the post (its `model:`
 # header). For no-argument runs, set MODEL="Claude Opus 5" to add one.
 set -euo pipefail
 cd "$(dirname "$0")"
+# The pinned build venv (requirements.txt); plain python3 renders code blocks
+# slightly differently.
+PY=/mnt/work/venvs/blog/bin/python; [ -x "$PY" ] || PY=python3
 if [ $# -ge 1 ]; then
   src="$1"; dst="posts/$(basename "$src")"
   [ -f "$src" ] || { echo "no such draft: $src" >&2; exit 1; }
@@ -18,7 +22,7 @@ if [ $# -ge 1 ]; then
   if [ -d "drafts/media/$slug" ]; then
     mkdir -p media && rm -rf "media/$slug" && mv "drafts/media/$slug" "media/$slug"
   fi
-  python3 build.py --check "$dst"
+  "$PY" build.py --check "$dst"
   msg="Publish: $(grep -m1 '^title:' "$dst" | cut -d: -f2- | sed 's/^ *//')"
   MODEL="$(grep -m1 '^model:' "$dst" | cut -d: -f2- | sed 's/^ *//')"
 else
@@ -27,7 +31,8 @@ fi
 if [ -n "${MODEL:-}" ]; then
   msg="$(printf '%s\n\nCo-Authored-By: %s <noreply@anthropic.com>' "$msg" "$MODEL")"
 fi
-python3 build.py
+"$PY" build.py
 git add -A
 git commit -m "$msg" || true
 git push origin main
+deploy/deploy.sh ai.jpain.io

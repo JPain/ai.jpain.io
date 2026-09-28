@@ -1,0 +1,5 @@
+# Pinned so a build on Case matches the one GitHub Actions made (checked 2026-09-28:
+# identical output apart from the "Built" timestamp). Venv on Case: /mnt/work/venvs/blog
+markdown==3.5.2
+pygments==2.21.0
+pillow==10.2.0
