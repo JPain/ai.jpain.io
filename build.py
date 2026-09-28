@@ -286,6 +286,10 @@ def author_name(p):
 
 
 def byline(p):
+    # "byline": "explicit" (jpain.io) shows one only when the post names an author, e.g.
+    # "James Pain, with Claude"; James' other posts have none, as on Bear.
+    if SITE["byline"] == "explicit" and not p["author"]:
+        return ""
     return f'<span class="author p-author">By {esc(author_name(p))}</span>'
 
 
@@ -364,6 +368,11 @@ def build():
     OUT.mkdir()
     if (ROOT / "static").exists():
         shutil.copytree(ROOT / "static", OUT, dirs_exist_ok=True)
+    # "mounts": {"compression-lab": "../compression-lab/docs"} publishes another project's
+    # built pages under this site (/compression-lab/), straight from its own repo.
+    for dest, src in SITE.get("mounts", {}).items():
+        shutil.copytree((ROOT / src).resolve(), OUT / dest, dirs_exist_ok=True,
+                        ignore=shutil.ignore_patterns(".*", "__pycache__"))
 
     base = read_template("base.html")
     post_t = read_template("post.html")
@@ -598,8 +607,15 @@ def check_images(post):
         problems.append(f"images total {total:.0f} KB, over {POST_IMAGES_MAX_KB} KB for one post")
     if folder.is_dir():
         # Unused images are mistakes; other files (a demo's .js, .html, data) are served as they are.
+        # Copies sharing a used image's name (negotiated.avif beside negotiated.jpg) are the
+        # alternatives nginx picks between for format negotiation, not strays.
+        stems = {Path(u).stem for u in used}
+        # ...and files a live demo loads are named in its own .js, .css or .html.
+        demo_text = "".join(f.read_text(errors="ignore") for f in folder.iterdir()
+                            if f.suffix.lower() in (".js", ".css", ".html"))
         for f in sorted(folder.iterdir()):
-            if f.name not in used and f.suffix.lower() in IMAGE_TYPES:
+            if (f.name not in used and f.stem not in stems and f.name not in demo_text
+                    and f.suffix.lower() in IMAGE_TYPES):
                 problems.append(f"{f.name}: in {folder.relative_to(ROOT)}/ but not used in the post")
     return problems, total, len(used)
 
