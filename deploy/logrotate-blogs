@@ -1,0 +1,18 @@
+# ai.jpain.io and jpain.io logs, kept 400 days -- they are the record the private
+# view counts are computed from (stats/blog-stats.py). Deployed to
+# /etc/logrotate.d/blogs. Own directory because Debian's /etc/logrotate.d/nginx
+# rotates /var/log/nginx/*.log for 14 days and logrotate refuses a file two
+# stanzas match (the same reason as ops/filehost/logrotate-filehost).
+/var/log/nginx/blogs/*.log {
+	daily
+	missingok
+	rotate 400
+	compress
+	delaycompress
+	notifempty
+	create 0640 www-data adm
+	sharedscripts
+	postrotate
+		invoke-rc.d nginx rotate >/dev/null 2>&1 || true
+	endscript
+}

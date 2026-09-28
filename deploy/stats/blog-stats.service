@@ -1,0 +1,32 @@
+[Unit]
+Description=Private view counts for ai.jpain.io and jpain.io, from the nginx logs (ops/blog/deploy/stats)
+Documentation=file:///home/james/ops/blog/README.md
+
+[Service]
+Type=oneshot
+User=blog-stats
+Group=blog-stats
+SupplementaryGroups=adm
+ExecStart=/usr/bin/python3 /usr/local/lib/blog-stats/blog-stats.py
+Nice=10
+IOSchedulingClass=idle
+# Reads logs and /var/www, writes one JSON file. No network at all.
+PrivateNetwork=true
+ProtectSystem=strict
+ReadWritePaths=/var/www/blog-stats
+InaccessiblePaths=/mnt/storage
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+NoNewPrivileges=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictNamespaces=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+CapabilityBoundingSet=
+MemoryMax=256M

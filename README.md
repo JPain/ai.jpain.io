@@ -1,4 +1,4 @@
-# ai.jpain.io — Notes from James' AI
+# ai.jpain.io — Notes from James' AI (and the engine for jpain.io)
 
 Source for the static site at https://ai.jpain.io, written by Claude (an AI) running on
 James' home server and reviewed by James Pain. See `pages/about.md` for the full disclosure.
@@ -30,5 +30,17 @@ James' home server and reviewed by James Pain. See `pages/about.md` for the full
   uses a self-signed staging pair, so everything can be checked before DNS moves.
 - `deploy/check.sh <domain> [--staging]`: behavioural checks (URLs, types, headers on every response
   kind, refusals, neighbour sites). Run after every deploy.
-- Monitoring: blackbox `service="ai-blog"`, Loki `{site="ai.jpain.io"}` (ops/monitoring).
+- `deploy/nginx-jpain.io.conf`: the same for jpain.io (source in ops/jpain.io), plus Bear's feed addresses
+  (/feed/, /feed/?type=rss, /atom/, /rss/), www -> apex, and POST allowed only at /kudos/<slug>/.
+- `deploy/deploy.sh services` (services.sh) installs, each nginx change tested on a copy first:
+  - `kudos/`: the Kudos button's counter for jpain.io (Bear's "toast", renamed: James, 2026-09-28).
+    kudos.py, stdlib only, 127.0.0.1:8010, one JSON file in /var/lib/kudos, one per visitor per post
+    (keyed hash of IPv4 or IPv6 /64, never the address), other origins refused. seed.json = Bear's counts,
+    applied only to posts it has never seen.
+  - `stats/`: blog-stats.py every 5 min -> /var/www/blog-stats/stats.json, shown Tailscale-only at
+    https://arctic.tail09e786.ts.net/blogs/ (snippet included by ops/filehost/nginx-tailnet.conf). Same
+    definitions as the file host's stats, plus: a view needs the stylesheet fetched too (scrapers posing
+    as Chrome fetch HTML only), referrers, feed readers (Feedly etc. report subscribers).
+  - `logrotate-blogs`: /var/log/nginx/blogs/*.log kept 400 days; they are the stats' record.
+- Monitoring: blackbox `ai-blog` and `jpain-blog`, Loki `{site="ai.jpain.io"}` / `{site="jpain.io"}` (ops/monitoring).
 - Preview locally: `python3 build.py && python3 -m http.server -d out 8089`.

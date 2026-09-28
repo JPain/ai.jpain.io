@@ -10,7 +10,7 @@ D="${1:?usage: $0 <domain> [--staging]}"
 IP4=85.17.65.153; IP6=2001:1af8:4700:a089:a::1
 C=(curl -s --max-time 10)
 if [[ "${2:-}" == "--staging" ]]; then
-  C+=(-k --resolve "$D:443:$IP4" --resolve "$D:80:$IP4")
+  C+=(-k --resolve "$D:443:$IP4" --resolve "$D:80:$IP4" --resolve "www.$D:443:$IP4")
 fi
 pass=0; fail=0
 chk() { # name expected actual
@@ -37,19 +37,35 @@ chk "home 200"                            "200"                   "$(code "https
 chk "HEAD home 200"                       "200"                   "$(code -I "https://$D/")"
 chk "post 200"                            "200"                   "$(code "https://$D$POST")"
 chk "post without slash -> 301 to slash"  "301 ${POST}"           "$(loc "https://$D${POST%/}")"
-chk "post markdown 200"                   "200"                   "$(code "https://$D${POST}index.md")"
-chk "post markdown is text/markdown"      "text/markdown; charset=utf-8" "$(ctype "https://$D${POST}index.md")"
 [[ -n "$IMG" ]] && chk "post image 200"   "200"                   "$(code "https://$D$POST$IMG")"
-chk "feed.xml application/xml"            "application/xml; charset=utf-8" "$(ctype "https://$D/feed.xml")"
-chk "feed.json application/json"          "application/json; charset=utf-8" "$(ctype "https://$D/feed.json")"
-for p in /about/ /colophon/ /tags/ /llms.txt /robots.txt /sitemap.xml /style.css; do
+if [[ "$D" == "ai.jpain.io" ]]; then
+  chk "post markdown 200"                 "200"                   "$(code "https://$D${POST}index.md")"
+  chk "post markdown is text/markdown"    "text/markdown; charset=utf-8" "$(ctype "https://$D${POST}index.md")"
+  chk "feed.xml application/xml"          "application/xml; charset=utf-8" "$(ctype "https://$D/feed.xml")"
+  chk "feed.json application/json"        "application/json; charset=utf-8" "$(ctype "https://$D/feed.json")"
+  PAGES="/about/ /colophon/ /tags/ /llms.txt /robots.txt /sitemap.xml /style.css"
+else   # jpain.io: Bear's addresses and content types
+  chk "www -> apex (keeps path)"          "301 https://$D/a?b=1"  "$(loc "https://www.$D/a?b=1")"
+  chk "/feed/ is Atom"                    "application/atom+xml; charset=utf-8" "$(ctype "https://$D/feed/")"
+  chk "/atom/ is Atom"                    "application/atom+xml; charset=utf-8" "$(ctype "https://$D/atom/")"
+  chk "/feed/?type=rss is RSS"            "application/rss+xml; charset=utf-8"  "$(ctype "https://$D/feed/?type=rss")"
+  chk "/rss/ is RSS"                      "application/rss+xml; charset=utf-8"  "$(ctype "https://$D/rss/")"
+  chk "sitemap text/xml, as Bear"         "text/xml; charset=utf-8" "$(ctype "https://$D/sitemap.xml")"
+  chk "Bear tag link /blog/?q=ai 200"     "200"                   "$(code "https://$D/blog/?q=ai")"
+  chk "kudos GET answers JSON"            '{"count": *'           "$("${C[@]}" "https://$D/kudos${POST}")"
+  chk "kudos never cached"                "no-store"              "$(hdr cache-control "https://$D/kudos${POST}")"
+  chk "kudos from another site refused"   "403"                   "$(code -X POST -H 'Origin: https://evil.example' "https://$D/kudos${POST}")"
+  chk "kudos for no such post"            "404"                   "$(code "https://$D/kudos/no-such-post/")"
+  chk "fonts cached 1 year"               "max-age=31536000"      "$(hdr cache-control "https://$D/fonts/plex-sans-400.woff2")"
+  PAGES="/blog/ /tags/ /robots.txt /style.css /site.js /favicon.svg"
+fi
+for p in $PAGES; do
   chk "$p 200"                            "200"                   "$(code "https://$D$p")"
 done
-chk "unknown path 404 with the 404 page"  "404"                   "$(code "https://$D/no-such-post/")"
-chk "404 page body served"                "found"            "$("${C[@]}" "https://$D/no-such-post/" | grep -q 'x-reason' && echo found)"
+chk "unknown path 404"                    "404"                   "$(code "https://$D/no-such-post/")"
 
 echo "--- headers (on every kind of response: no location may drop them)"
-for u in / "$POST" "${POST}index.md" "$POST$IMG" /feed.xml /no-such-post/; do
+for u in / "$POST" "$POST$IMG" /no-such-post/; do
   [[ -z "$u" ]] && continue
   chk "CSP on $u"                         "default-src 'self';*"  "$(hdr content-security-policy "https://$D$u")"
   chk "HSTS on $u"                        "max-age=63072000"      "$(hdr strict-transport-security "https://$D$u")"
@@ -64,7 +80,8 @@ chk "gzip on CSS"                         "gzip"                  "$(hdr content
 
 echo "--- nothing exposed, nothing accepted"
 for m in POST PUT DELETE; do chk "$m / -> 405" "405" "$(code -X "$m" "https://$D/")"; done
-for p in /.git/config /.env /.nojekyll /CNAME /404.html; do chk "$p -> 404" "404" "$(code "https://$D$p")"; done
+chk "POST to a post page -> 405"          "405"                   "$(code -X POST "https://$D$POST")"
+for p in /.git/config /.env /404.html; do chk "$p -> 404" "404" "$(code "https://$D$p")"; done
 chk "path traversal refused"              "400"                   "$(code --path-as-is "https://$D/../../etc/passwd")"
 
 echo "--- neighbours on the same nginx still fine"

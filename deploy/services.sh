@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+# Install the blogs' services on Arctic. Idempotent; run via `deploy.sh services`.
+#
+#   kudos        the Kudos button's counter for jpain.io (kudos/), 127.0.0.1:8010
+#   blog-stats   private view counts from the nginx logs, every 5 min (stats/)
+#   /blogs/      the Tailscale-only page showing them (stats/web/), served by the
+#                tailnet vhost of ops/filehost through snippets/tailnet-*.conf
+#   logrotate    /var/log/nginx/blogs/*.log kept 400 days (logrotate-blogs)
+#
+# nginx changes are tested against a copy of /etc/nginx before anything is
+# installed, as in deploy.sh. The kudos seed (Bear's counts) applies only to posts
+# the service has never seen, so re-running never resets a count.
+set -euo pipefail
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+HOST="${SITE_SSH:-james@arctic}"
+TAILNET_CONF="$(dirname "$(dirname "$HERE")")/filehost/nginx-tailnet.conf"
+STAGE=/tmp/blog-services
+say() { printf '\033[36m==\033[0m %s\n' "$*"; }
+
+say "copying to $HOST"
+ssh "$HOST" "rm -rf $STAGE && mkdir -p $STAGE"
+rsync -rt "$HERE/kudos" "$HERE/stats" "$HERE/logrotate-blogs" "$HERE/nginx-tailnet-blogs.conf" "$HOST:$STAGE/"
+scp -q "$TAILNET_CONF" "$HOST:$STAGE/arctic-tailnet.conf"
+
+ssh "$HOST" STAGE="$STAGE" 'bash -s' <<'REMOTE'
+set -euo pipefail
+say() { printf '\033[36m--\033[0m %s\n' "$*"; }
+S=$STAGE
+
+# nginx first, tested on a copy: the snippet, and the tailnet vhost that includes it.
+T="$(sudo mktemp -d /tmp/nginx-test.XXXXXX)"
+trap 'sudo rm -rf "$T"' EXIT
+sudo cp -a /etc/nginx/. "$T/"
+sudo sed -i "s#/etc/nginx/#$T/#g" "$T/nginx.conf"
+sudo install -D -m 0644 "$S/nginx-tailnet-blogs.conf" "$T/snippets/tailnet-blogs.conf"
+sed "s#/etc/nginx/snippets/#$T/snippets/#" "$S/arctic-tailnet.conf" | sudo tee "$T/sites-available/arctic-tailnet" >/dev/null
+sudo ln -sfn "$T/sites-available/arctic-tailnet" "$T/sites-enabled/arctic-tailnet"
+sudo nginx -t -q -c "$T/nginx.conf" || { echo "nginx -t FAILED; nothing installed" >&2; exit 1; }
+say "nginx changes pass nginx -t"
+
+# Accounts: fixed system users (see kudos.service for why not DynamicUser).
+id kudos >/dev/null 2>&1 || sudo useradd --system --no-create-home --shell /usr/sbin/nologin kudos
+id blog-stats >/dev/null 2>&1 || sudo useradd --system --no-create-home --shell /usr/sbin/nologin --groups adm blog-stats
+
+# Logs and their rotation.
+sudo install -d -o root -g adm -m 0755 /var/log/nginx/blogs
+sudo install -o root -g root -m 0644 "$S/logrotate-blogs" /etc/logrotate.d/blogs
+sudo logrotate --debug /etc/logrotate.d/blogs >/dev/null 2>&1 || { echo "logrotate rejects logrotate-blogs" >&2; exit 1; }
+
+# The stats page and its data directories.
+sudo install -d -o blog-stats -g blog-stats -m 0755 /var/www/blog-stats
+sudo install -d -o kudos -g kudos -m 0755 /var/www/blog-stats/kudos
+for f in index.html stats.css stats.js; do sudo install -o root -g root -m 0644 "$S/stats/web/$f" /var/www/blog-stats/; done
+
+# Code, seed, units.
+sudo install -D -o root -g root -m 0644 "$S/kudos/kudos.py" /usr/local/lib/kudos/kudos.py
+sudo install -D -o root -g root -m 0644 "$S/kudos/seed.json" /etc/kudos/seed.json
+sudo install -D -o root -g root -m 0644 "$S/stats/blog-stats.py" /usr/local/lib/blog-stats/blog-stats.py
+for u in kudos/kudos.service stats/blog-stats.service stats/blog-stats.timer; do
+  sudo install -o root -g root -m 0644 "$S/$u" /etc/systemd/system/
+done
+sudo systemctl daemon-reload
+sudo systemctl enable -q kudos.service blog-stats.timer
+sudo systemctl restart kudos.service
+sudo systemctl start blog-stats.timer
+sudo systemctl start blog-stats.service
+
+# nginx last, now that everything it serves exists.
+sudo install -o root -g root -m 0644 "$S/nginx-tailnet-blogs.conf" /etc/nginx/snippets/tailnet-blogs.conf
+sudo install -o root -g root -m 0644 "$S/arctic-tailnet.conf" /etc/nginx/sites-available/arctic-tailnet
+sudo nginx -t -q
+sudo systemctl reload nginx
+rm -rf "$S"
+sleep 1
+say "kudos: $(systemctl is-active kudos) | blog-stats last run: $(systemctl show -p Result --value blog-stats.service) | nginx: $(systemctl is-active nginx)"
+REMOTE
+say "done"

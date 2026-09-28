@@ -5,6 +5,9 @@
 #   deploy/deploy.sh ai.jpain.io --tls      # also get the Let's Encrypt cert
 #                                           # (only once DNS points at Arctic)
 #   deploy/deploy.sh ai.jpain.io --config   # nginx config only, not the files
+#   deploy/deploy.sh jpain.io [...]         # the same for jpain.io (../../jpain.io/out)
+#   deploy/deploy.sh services               # the Kudos service, the private view
+#                                           # stats, log rotation and the tailnet page
 #
 # Modelled on ops/neverknown/deploy.sh. nginx, certbot, the ACME webroot, the
 # certbot reload hook and ufw 80/443 already exist on Arctic (ops/filehost).
@@ -27,7 +30,9 @@ MODE="${2:-}"
 
 case "$DOMAIN" in
   ai.jpain.io) OUT="$BLOG/out"; NAMES=(ai.jpain.io) ;;
-  *) echo "usage: $0 ai.jpain.io [--tls|--config]" >&2; exit 2 ;;
+  jpain.io)    OUT="$(dirname "$BLOG")/jpain.io/out"; NAMES=(jpain.io www.jpain.io) ;;
+  services)    exec "$HERE/services.sh" ;;
+  *) echo "usage: $0 ai.jpain.io|jpain.io [--tls|--config]  or  $0 services" >&2; exit 2 ;;
 esac
 CONF="$HERE/nginx-${DOMAIN}.conf"
 
@@ -47,7 +52,8 @@ if [[ "$MODE" != "--config" ]]; then
 fi
 scp -q "$CONF" "$HOST:$STAGE/site.conf"
 
-ssh "$HOST" DOMAIN="$DOMAIN" STAGE="$STAGE" MODE="$MODE" 'bash -s' <<'REMOTE'
+SANS="$(printf 'DNS:%s,' "${NAMES[@]}")"; SANS="${SANS%,}"
+ssh "$HOST" DOMAIN="$DOMAIN" STAGE="$STAGE" MODE="$MODE" SANS="$SANS" 'bash -s' <<'REMOTE'
 set -euo pipefail
 say() { printf '\033[36m--\033[0m %s\n' "$*"; }
 LE="/etc/letsencrypt/live/${DOMAIN}"
@@ -60,11 +66,15 @@ else
   if ! sudo test -f "$STAGING/fullchain.pem"; then
     sudo install -d -m 0700 "$STAGING"
     sudo openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:P-256 -nodes \
-      -days 90 -subj "/CN=${DOMAIN} (staging, not trusted)" -addext "subjectAltName=DNS:${DOMAIN}" \
+      -days 90 -subj "/CN=${DOMAIN} (staging, not trusted)" -addext "subjectAltName=${SANS}" \
       -keyout "$STAGING/privkey.pem" -out "$STAGING/fullchain.pem" 2>/dev/null
   fi
   sed -i "s#${LE}/#${STAGING}/#g" "$STAGE/site.conf"
 fi
+
+# Logs live in their own directory, kept 400 days for the stats (logrotate-blogs).
+# nginx -t opens the log files, so it must exist before the test.
+sudo install -d -o root -g adm -m 0755 /var/log/nginx/blogs
 
 # Test first, on a copy of the whole nginx tree with this site swapped in.
 T="$(sudo mktemp -d /tmp/nginx-test.XXXXXX)"

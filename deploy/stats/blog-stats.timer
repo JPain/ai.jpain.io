@@ -1,0 +1,10 @@
+[Unit]
+Description=Refresh the blogs' private view counts every five minutes
+
+[Timer]
+OnBootSec=3min
+OnCalendar=*:2/5
+AccuracySec=30s
+
+[Install]
+WantedBy=timers.target

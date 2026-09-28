@@ -1,0 +1,54 @@
+[Unit]
+Description=jpain.io Kudos button (ops/blog/deploy/kudos)
+Documentation=file:///home/james/ops/blog/README.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# A fixed system user rather than DynamicUser: the plain counts it writes for the
+# private stats page (/var/www/blog-stats/kudos/) must be readable by nginx, and a
+# DynamicUser's state lives under /var/lib/private (0700).
+User=kudos
+Group=kudos
+StateDirectory=kudos
+StateDirectoryMode=0700
+Environment=KUDOS_LISTEN=127.0.0.1:8010 KUDOS_SITE=/var/www/jpain.io KUDOS_SEED=/etc/kudos/seed.json KUDOS_PUBLIC=/var/www/blog-stats/kudos/kudos.json
+ExecStart=/usr/bin/python3 /usr/local/lib/kudos/kudos.py
+Restart=on-failure
+RestartSec=3s
+
+# --- sandbox ---------------------------------------------------------------
+# Takes POSTs from the internet (via nginx), so it sees as little as possible:
+# the site (read-only, to know which posts exist), its own state, one output dir.
+InaccessiblePaths=/mnt/storage
+ReadWritePaths=/var/www/blog-stats/kudos
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+NoNewPrivileges=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+ProtectProc=invisible
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+IPAddressDeny=any
+IPAddressAllow=localhost
+LockPersonality=true
+MemoryDenyWriteExecute=true
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+CapabilityBoundingSet=
+UMask=0077
+MemoryMax=128M
+TasksMax=32
+
+[Install]
+WantedBy=multi-user.target
