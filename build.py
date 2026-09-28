@@ -166,6 +166,24 @@ def iso(d):
     return d.isoformat() if d.tzinfo else d.isoformat() + "Z"
 
 
+LIST_ITEM = re.compile(r"^\s{0,3}([-*+]|\d+[.)])\s")
+
+
+def bear_lists(body):
+    """Bear (like GitHub) starts a list right under a paragraph; Python-Markdown needs a blank
+    line first. Insert one, outside fenced code. Used by sites with "bear_markdown": true."""
+    out, fence, prev = [], False, ""
+    for line in body.split("\n"):
+        if line.lstrip().startswith(("```", "~~~")):
+            fence = not fence
+        if (not fence and LIST_ITEM.match(line) and prev.strip()
+                and not LIST_ITEM.match(prev) and not prev.startswith((" ", "\t"))):
+            out.append("")
+        out.append(line)
+        prev = line
+    return "\n".join(out)
+
+
 def parse(path):
     text = path.read_text()
     head, body = split_header(text)
@@ -186,10 +204,12 @@ def parse(path):
         when = dt.datetime.now()
     when = site_date(when)
     tags = [t.strip() for t in meta.get("tags", "").split(",") if t.strip()]
-    md = markdown.Markdown(extensions=MD_EXTENSIONS, extension_configs=MD_CONFIG)
+    # "smart_quotes": false keeps quotes and ... exactly as typed (jpain.io, as on Bear).
+    exts = [e for e in MD_EXTENSIONS if SITE.get("smart_quotes", True) or e != "smarty"]
+    md = markdown.Markdown(extensions=exts, extension_configs=MD_CONFIG)
     words = len(re.findall(r"\S+", body))
     folder = media_dir(path, slug)
-    raw_html = md.convert(body)
+    raw_html = md.convert(bear_lists(body) if SITE.get("bear_markdown") else body)
     return {
         "media": folder,
         "images": images_in(raw_html),
@@ -395,12 +415,18 @@ def build():
     write("index.html", page_shell(base, SITE["title"], listing(posts, template=home_t or index_t)))
     for extra in SITE.get("post_lists", []):   # e.g. jpain.io's /blog/, kept from Bear
         write(f"{extra['path']}/index.html", page_shell(base, extra["title"], listing(posts, f"<h1>{esc(extra['title'])}</h1>")))
-    tags = sorted({t for p in posts for t in p["tags"]}, key=str.lower)
-    for t in tags:
-        items = [p for p in posts if t in p["tags"]]
-        write(f"tags/{tag_slug(t)}/index.html", page_shell(base, f"Tag: {t}", listing(items, f"<h1>Tagged “{esc(t)}”</h1>")))
+    # Tags that differ only in capitals ("AI", "ai") are one tag with one page.
+    by_slug = {}
+    for p in posts:
+        for t in p["tags"]:
+            by_slug.setdefault(tag_slug(t), set()).add(t)
+    tags = sorted(by_slug)
+    for ts in tags:
+        name = sorted(by_slug[ts])[0]
+        items = [p for p in posts if any(tag_slug(t) == ts for t in p["tags"])]
+        write(f"tags/{ts}/index.html", page_shell(base, f"Tag: {name}", listing(items, f"<h1>Tagged “{esc(name)}”</h1>")))
     if tags:
-        tl = "".join(f'<li><a href="/tags/{esc(tag_slug(t))}/">{esc(t)}</a></li>' for t in tags)
+        tl = "".join(f'<li><a href="/tags/{esc(ts)}/">{esc(sorted(by_slug[ts])[0])}</a></li>' for ts in tags)
         write("tags/index.html", page_shell(base, "Tags", f"<h1>Tags</h1><ul class=\"tags\">{tl}</ul>"))
 
     # pages
