@@ -496,7 +496,7 @@ def build():
         if SITE.get("markdown_source"):
             write(f"{p['slug']}/index.md", p["raw"])
 
-    # "mounts": {"game-screenshot-compression/lab": "../compression-lab/docs"} publishes another
+    # "mounts": {"image-compression-colour-ceiling/lab": "../compression-lab/docs"} publishes another
     # project's built pages inside this site, straight from its own repo. A mount inside a post's
     # folder appears only once that post is published, never as an orphan beside a draft.
     for dest, src in SITE.get("mounts", {}).items():
