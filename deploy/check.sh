@@ -55,6 +55,7 @@ for u in / "$POST" "${POST}index.md" "$POST$IMG" /feed.xml /no-such-post/; do
   chk "HSTS on $u"                        "max-age=63072000"      "$(hdr strict-transport-security "https://$D$u")"
   chk "nosniff on $u"                     "nosniff"               "$(hdr x-content-type-options "https://$D$u")"
 done
+chk "X-Served-By: arctic"                  "arctic"                "$(hdr x-served-by "https://$D/")"
 chk "HTTP/2 negotiated"                   "2"                     "$("${C[@]}" -o /dev/null -w '%{http_version}' "https://$D/")"
 chk "HTTP/3 advertised (Alt-Svc)"         'h3=":443"; ma=86400'   "$(hdr alt-svc "https://$D/")"
 chk "HTML cached 10 minutes"              "max-age=600"           "$(hdr cache-control "https://$D/")"
