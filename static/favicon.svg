@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- The ◍ mark beside the site title, drawn as shapes so it needs no font:
+       an accent disc cut by two vertical gaps. Dark tabs get the dark-mode accent. -->
+  <style>.m{fill:#b5502a}@media (prefers-color-scheme:dark){.m{fill:#e8926b}}</style>
+  <defs><clipPath id="c"><circle cx="32" cy="32" r="30"/></clipPath></defs>
+  <g clip-path="url(#c)" class="m">
+    <rect x="2" y="2" width="15" height="60"/>
+    <rect x="24.5" y="2" width="15" height="60"/>
+    <rect x="47" y="2" width="15" height="60"/>
+  </g>
+</svg>
