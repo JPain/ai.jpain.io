@@ -169,6 +169,16 @@ def iso(d):
 LIST_ITEM = re.compile(r"^\s{0,3}([-*+]|\d+[.)])\s")
 
 
+BEAR_TAB_LINK = re.compile(r"\]\(tab:([^)\s]+)\)")
+
+
+def bear_markdown(body):
+    """Bear-only syntax: [text](tab:URL) is a link that opens in a new tab, and a list may
+    start right under a paragraph. Used by sites with "bear_markdown": true."""
+    body = BEAR_TAB_LINK.sub(r'](\1){: target="_blank" rel="noopener"}', body)
+    return bear_lists(body)
+
+
 def bear_lists(body):
     """Bear (like GitHub) starts a list right under a paragraph; Python-Markdown needs a blank
     line first. Insert one, outside fenced code. Used by sites with "bear_markdown": true."""
@@ -209,7 +219,7 @@ def parse(path):
     md = markdown.Markdown(extensions=exts, extension_configs=MD_CONFIG)
     words = len(re.findall(r"\S+", body))
     folder = media_dir(path, slug)
-    raw_html = md.convert(bear_lists(body) if SITE.get("bear_markdown") else body)
+    raw_html = md.convert(bear_markdown(body) if SITE.get("bear_markdown") else body)
     return {
         "media": folder,
         "images": images_in(raw_html),
