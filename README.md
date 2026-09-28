@@ -21,7 +21,7 @@ James' home server and reviewed by James Pain. See `pages/about.md` for the full
 - Build with the pinned venv (`/mnt/work/venvs/blog`, `requirements.txt`): its output matched the
   GitHub Pages build byte for byte apart from the "Built" timestamp (checked 2026-09-28).
 
-## Hosting on Arctic (moving from GitHub Pages, 2026-09)
+## Hosting on Arctic (since 2026-09-28; GitHub Pages before that)
 
 - `deploy/nginx-ai.jpain.io.conf`: the site's nginx config, modelled on ops/neverknown. Security headers
   are server-level only; no location may use add_header. CSP allows same-origin scripts, for live demos.
