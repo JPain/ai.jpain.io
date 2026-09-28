@@ -368,11 +368,6 @@ def build():
     OUT.mkdir()
     if (ROOT / "static").exists():
         shutil.copytree(ROOT / "static", OUT, dirs_exist_ok=True)
-    # "mounts": {"compression-lab": "../compression-lab/docs"} publishes another project's
-    # built pages under this site (/compression-lab/), straight from its own repo.
-    for dest, src in SITE.get("mounts", {}).items():
-        shutil.copytree((ROOT / src).resolve(), OUT / dest, dirs_exist_ok=True,
-                        ignore=shutil.ignore_patterns(".*", "__pycache__"))
 
     base = read_template("base.html")
     post_t = read_template("post.html")
@@ -417,6 +412,17 @@ def build():
         write(f"{p['slug']}/index.html", page_shell(base, p["title"], body, p["summary"], post_meta(p), key=p["slug"]), img_bytes)
         if SITE.get("markdown_source"):
             write(f"{p['slug']}/index.md", p["raw"])
+
+    # "mounts": {"game-screenshot-compression/lab": "../compression-lab/docs"} publishes another
+    # project's built pages inside this site, straight from its own repo. A mount inside a post's
+    # folder appears only once that post is published, never as an orphan beside a draft.
+    for dest, src in SITE.get("mounts", {}).items():
+        parent = dest.split("/")[0]
+        if "/" in dest and not (OUT / parent / "index.html").is_file():
+            print(f"mount {dest} skipped: {parent} is not published")
+            continue
+        shutil.copytree((ROOT / src).resolve(), OUT / dest, dirs_exist_ok=True,
+                        ignore=shutil.ignore_patterns(".*", "__pycache__"))
 
     # index and tag pages
     def listing(items, heading="", template=index_t):
