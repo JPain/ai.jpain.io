@@ -25,7 +25,7 @@ front matter between `---` lines, as in Bear's export. Keys used: title (require
 (defaults from the filename), published_date (YYYY-MM-DD, YYYY-MM-DD HH:MM or ISO 8601 with a
 zone; defaults to now), tags (comma-separated), summary or meta_description (one line for the
 index, feed and description meta), meta_image (share image; defaults to the post's first image),
-updated (date of a real revision: dateModified and sitemap lastmod), author (byline override), ai, ai_note and ai_part (AI disclosure, levels in site.json "ai_levels"),
+updated (date of a real revision: dateModified and sitemap lastmod), author (byline override), ai, ai_agent, ai_note and ai_part (AI disclosure, levels in site.json "ai_levels"),
 publish (false = not built), promoted (URL of a rewritten version on jpain.io), model and
 model_id (provenance; required on ai.jpain.io). Everything else is ignored.
 """
@@ -255,6 +255,7 @@ def parse(path):
         "author": meta.get("author", ""),
         "ai": meta.get("ai", "").strip().lower(),
         "ai_note": meta.get("ai_note", ""),
+        "ai_agent": meta.get("ai_agent", ""),
         "ai_parts": ai_parts,
         "publish": meta.get("publish", "true").lower() != "false",
         "promoted": meta.get("promoted", ""),
@@ -328,26 +329,31 @@ def byline(p):
 QUOTES = []
 
 
-def ai_panel(key, body):
-    """A self-contained AI label: the label itself is the button, and opening it shows
-    what the level means, then anything more the post says."""
+def ai_panel(key, body, after=""):
+    """A self-contained AI label: the label is the button, and opening it shows `body`,
+    or, when there's nothing more to say, what the level means. `after` sits beside the label."""
     lvl = SITE["ai_levels"][key]
-    return (f'<summary class="ai-label ai-{esc(key)}">{esc(lvl["label"])}</summary>'
-            f'<div class="ai-panel"><p>{esc(lvl["summary"])}</p>{body}</div>')
+    body = body or f'<p>{esc(lvl["summary"])}</p>'
+    return (f'<summary class="ai-summary" title="{esc(lvl["summary"])}"><span class="ai-label ai-{esc(key)}">'
+            f'{esc(lvl["label"])}</span>{after}</summary><div class="ai-panel">{body}</div>')
 
 
 def ai_disclosure(p):
-    """The post's AI label, under the title. `ai:` picks a level from site.json "ai_levels";
-    `ai_note:` adds a sentence and `ai_part:` lines a breakdown, both shown when it's opened."""
+    """The post's AI label, under the title. `ai:` picks a level from site.json "ai_levels" and
+    `ai_agent:` names the AI beside it, like a byline. Opening it shows the `ai_part:` breakdown
+    (or, without one, the level's meaning and any `ai_note:`)."""
     if not p.get("ai"):
         return ""
-    body = f'<p>{esc(p["ai_note"])}</p>' if p.get("ai_note") else ""
+    agent = f'<span class="ai-agent">{esc(p["ai_agent"])}</span>' if p.get("ai_agent") else ""
     if p.get("ai_parts"):
         who = SITE["ai_part_levels"]
         rows = "".join(f'<dt>{esc(part)}</dt><dd><span class="ai-label ai-{esc(k)}">{esc(who[k])}</span> {esc(detail)}</dd>'
                        for part, k, detail in p["ai_parts"])
-        body += f'<p class="ai-panel-head">What AI did and didn\'t do in this post</p><dl>{rows}</dl>'
-    return f'<details class="ai-disclosure">{ai_panel(p["ai"], body)}</details>'
+        body = f'<dl>{rows}</dl>'
+    else:
+        lvl = SITE["ai_levels"][p["ai"]]
+        body = f'<p>{esc(lvl["summary"])}</p>' + (f'<p>{esc(p["ai_note"])}</p>' if p.get("ai_note") else "")
+    return f'<details class="ai-disclosure">{ai_panel(p["ai"], body, agent)}</details>'
 
 
 AI_INLINE = re.compile(r"<p>\[ai:\s*([a-z]+)\s*(?:\|\s*(.*?))?\]</p>")
