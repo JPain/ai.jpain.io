@@ -25,7 +25,7 @@ front matter between `---` lines, as in Bear's export. Keys used: title (require
 (defaults from the filename), published_date (YYYY-MM-DD, YYYY-MM-DD HH:MM or ISO 8601 with a
 zone; defaults to now), tags (comma-separated), summary or meta_description (one line for the
 index, feed and description meta), meta_image (share image; defaults to the post's first image),
-updated (date of a real revision: dateModified and sitemap lastmod), author (byline override), ai, ai_agent, ai_note and ai_part (AI disclosure, levels in site.json "ai_levels"),
+updated (date of a real revision: dateModified and sitemap lastmod), author (byline override), ai_draft, ai_edit, ai_share, ai_agent, ai_note and ai_part (AI disclosure; words in site.json "ai_drafts"/"ai_edits"),
 publish (false = not built), promoted (URL of a rewritten version on jpain.io), model and
 model_id (provenance; required on ai.jpain.io). Everything else is ignored.
 """
@@ -206,9 +206,17 @@ def parse(path):
     for k in SITE["required"]:
         if not meta.get(k):
             sys.exit(f"{path}: missing header key '{k}' (required by {ROOT.name}/site.json)")
-    levels = SITE.get("ai_levels", {})
-    if meta.get("ai") and meta["ai"].strip().lower() not in levels:
-        sys.exit(f"{path}: ai: must be one of {', '.join(levels) or '(none: site.json has no ai_levels)'}")
+    ai_draft, ai_edit = meta.get("ai_draft", "").strip().lower(), meta.get("ai_edit", "").strip().lower()
+    if ai_draft or ai_edit:
+        drafts, edits = SITE.get("ai_drafts", {}), SITE.get("ai_edits", {})
+        if ai_draft not in drafts:
+            sys.exit(f"{path}: ai_draft: must be one of {', '.join(drafts) or '(none in site.json)'}")
+        if ai_draft not in edits.get(ai_edit, {}):
+            ok = [e for e, by in edits.items() if ai_draft in by]
+            sys.exit(f"{path}: with ai_draft: {ai_draft}, ai_edit: must be one of {', '.join(ok)}")
+    share = meta.get("ai_share", "").strip().rstrip("%")
+    if share and not (share.isdigit() and 0 <= int(share) <= 100):
+        sys.exit(f"{path}: ai_share: must be a number from 0 to 100")
     # ai_part: may repeat, one line per part: "Part | who | detail", who from "ai_part_levels".
     ai_parts = []
     for line in head.splitlines():
@@ -253,7 +261,9 @@ def parse(path):
         "summary": meta.get("summary") or meta.get("meta_description", ""),
         "image": meta.get("meta_image", ""),
         "author": meta.get("author", ""),
-        "ai": meta.get("ai", "").strip().lower(),
+        "ai_draft": ai_draft,
+        "ai_edit": ai_edit,
+        "ai_share": int(share) if share else None,
         "ai_note": meta.get("ai_note", ""),
         "ai_agent": meta.get("ai_agent", ""),
         "ai_parts": ai_parts,
@@ -338,23 +348,41 @@ def ai_panel(key, body, after=""):
             f'{esc(lvl["label"])}{after}</span></summary><div class="ai-panel">{body}</div>')
 
 
+# How much of the final text is AI's, by default, for each draft and edit (0-100).
+AI_SHARE = {("me", "none"): 0, ("me", "reviewed"): 5, ("me", "light"): 15, ("me", "heavy"): 40,
+            ("me", "rewritten"): 70, ("ai", "rewritten"): 30, ("ai", "heavy"): 50, ("ai", "light"): 85,
+            ("ai", "reviewed"): 95, ("ai", "unreviewed"): 100, ("both", "reviewed"): 50,
+            ("both", "light"): 50, ("both", "heavy"): 40, ("both", "rewritten"): 25, ("both", "unreviewed"): 50}
+
+
 def ai_disclosure(p):
-    """The post's AI label, under the title. `ai:` picks a level from site.json "ai_levels" and
-    `ai_agent:` names the AI inside it, like a byline. Opening it shows the `ai_part:` breakdown
-    (or, without one, the level's meaning and any `ai_note:`)."""
-    if not p.get("ai"):
+    """The post's AI label, under the title: in words, who drafted it (`ai_draft:`) and what
+    happened next (`ai_edit:`), from site.json "ai_drafts" and "ai_edits"; a bar showing roughly
+    how much of the final text is AI's (`ai_share:`, 0-100, else a default); and `ai_agent:`,
+    the AI's name, like a byline. Opening it shows the `ai_part:` breakdown, if any."""
+    if not p.get("ai_draft"):
         return ""
+    d, e = p["ai_draft"], p["ai_edit"]
+    words = SITE["ai_edits"][e][d]
+    text = words if (d, e) == ("me", "none") else f'{SITE["ai_drafts"][d]} · {words}'
+    share = p["ai_share"] if p["ai_share"] is not None else AI_SHARE.get((d, e), 50)
+    step = max(10, round(share / 10) * 10) if share else 0   # 10% steps as CSS classes (no inline styles); any AI shows
+    says = "None of the text is AI's." if share == 0 else f"Roughly {share}% of the final text is AI's."
+    bar = (f'<span class="ai-bar ai-share-{step}" role="img" aria-label="{esc(says)}">'
+           f'<span class="ai-bar-ai"></span></span>')
     agent = (f'<span class="ai-sep" aria-hidden="true">|</span><span class="ai-agent">{esc(p["ai_agent"])}</span>'
              if p.get("ai_agent") else "")
-    if p.get("ai_parts"):
+    cls = "ai-label ai-process" + (" ai-unreviewed" if e == "unreviewed" else "")
+    summary = f'<span class="{cls}">{bar}{esc(text)}{agent}</span>'
+    if not p.get("ai_parts"):
+        body = f'<p>{esc(says)}</p>' + (f'<p>{esc(p["ai_note"])}</p>' if p.get("ai_note") else "")
+    else:
         who = SITE["ai_part_levels"]
         rows = "".join(f'<dt>{esc(part)}</dt><dd><span class="ai-label ai-{esc(k)}">{esc(who[k])}</span> {esc(detail)}</dd>'
                        for part, k, detail in p["ai_parts"])
         body = f'<dl>{rows}</dl>'
-    else:
-        lvl = SITE["ai_levels"][p["ai"]]
-        body = f'<p>{esc(lvl["summary"])}</p>' + (f'<p>{esc(p["ai_note"])}</p>' if p.get("ai_note") else "")
-    return f'<details class="ai-disclosure">{ai_panel(p["ai"], body, agent)}</details>'
+    return (f'<details class="ai-disclosure"><summary class="ai-summary" title="{esc(says)}">{summary}</summary>'
+            f'<div class="ai-panel">{body}</div></details>')
 
 
 AI_INLINE = re.compile(r"<p>\[ai:\s*([a-z]+)\s*(?:\|\s*(.*?))?\]</p>")
@@ -462,8 +490,9 @@ def post_meta(p):
     url = f'{SITE["url"]}/{p["slug"]}/'
     image = post_image(p)
     out = f'<meta name="ai-model" content="{esc(p["model_id"])}">\n' if p["model_id"] else ""
-    if p.get("ai"):
-        out += f'<meta name="ai-disclosure" content="{esc(p["ai"])}">\n'
+    if p.get("ai_draft"):
+        share = p["ai_share"] if p["ai_share"] is not None else AI_SHARE.get((p["ai_draft"], p["ai_edit"]), 50)
+        out += f'<meta name="ai-disclosure" content="draft={esc(p["ai_draft"])}; edit={esc(p["ai_edit"])}; ai-share={share}">\n'
     out += head_meta(f'/{p["slug"]}/', p["title"], p["summary"], "article", image)
     if SITE.get("share_cards"):
         out += f'\n<meta property="article:published_time" content="{iso(p["date"])}">'
