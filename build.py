@@ -405,14 +405,17 @@ AI_INLINE = re.compile(r"<p>\[ai:\s*([a-z]+)\s*(?:\|\s*(.*?))?\]</p>")
 def ai_inline(html_text, path):
     """A line `[ai: level]` or `[ai: level | note]` in a post labels the block after it (a code
     block, table, figure or paragraph), for marking in place what AI made, and especially
-    what hasn't been reviewed."""
+    what hasn't been reviewed. It's a small plain caption, not a pill, so it never reads as a
+    second post label: the icon, then the note (e.g. "AI-generated image") or the level's name."""
     levels = SITE.get("ai_levels", {})
 
     def label(m):
         key, note = m.group(1), m.group(2) or ""
         if key not in levels:
             sys.exit(f"{path}: [ai: {key}] must be one of {', '.join(levels) or '(none in site.json)'}")
-        return f'<details class="ai-inline">{ai_panel(key, f"<p>{note}</p>" if note else "")}</details>'
+        lvl = levels[key]
+        return (f'<p class="ai-inline" title="{esc(lvl["summary"])}">{ai_icon(key)}'
+                f'<span>{note or esc(lvl["label"])}</span></p>')
     return AI_INLINE.sub(label, html_text)
 
 
