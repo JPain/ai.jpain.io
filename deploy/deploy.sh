@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Deploy a blog to Arctic's nginx. Idempotent: re-run after any build.
+# Deploy a blog to Fern's nginx (moved from Arctic 2026-09-29). Idempotent: re-run after any build.
 #
 #   deploy/deploy.sh ai.jpain.io            # push the built site + nginx config
 #   deploy/deploy.sh ai.jpain.io --tls      # also get the Let's Encrypt cert
@@ -19,12 +19,12 @@
 # - With no certificate yet, the real TLS config is installed with a
 #   self-signed staging pair instead of an HTTP-only bootstrap, so headers,
 #   HTTP/2 and redirects can all be checked before DNS moves:
-#     curl -k --resolve ai.jpain.io:443:85.17.65.153 https://ai.jpain.io/
+#     curl -k --resolve ai.jpain.io:443:95.211.45.90 https://ai.jpain.io/
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BLOG="$(dirname "$HERE")"
-HOST="${SITE_SSH:-james@arctic}"
+HOST="${SITE_SSH:-james@fern}"
 DOMAIN="${1:-}"
 MODE="${2:-}"
 

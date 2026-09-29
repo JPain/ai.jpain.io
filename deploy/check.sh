@@ -7,7 +7,7 @@
 #   deploy/check.sh ai.jpain.io --staging   # against Arctic directly, before
 #                                           # DNS moves (self-signed cert OK)
 D="${1:?usage: $0 <domain> [--staging]}"
-IP4=85.17.65.153; IP6=2001:1af8:4700:a089:a::1
+IP4=95.211.45.90; IP6=2001:1af8:5301:109:1c00:82ff:fe00:7d3   # Fern since 2026-09-29
 C=(curl -s --max-time 10)
 if [[ "${2:-}" == "--staging" ]]; then
   C+=(-k --resolve "$D:443:$IP4" --resolve "$D:80:$IP4" --resolve "www.$D:443:$IP4")
@@ -84,7 +84,7 @@ for u in / "$POST" "$POST$IMG" /no-such-post/; do
   chk "HSTS on $u"                        "max-age=63072000"      "$(hdr strict-transport-security "https://$D$u")"
   chk "nosniff on $u"                     "nosniff"               "$(hdr x-content-type-options "https://$D$u")"
 done
-chk "X-Served-By: arctic"                  "arctic"                "$(hdr x-served-by "https://$D/")"
+chk "X-Served-By: ${SERVED_BY:-fern}"                  "${SERVED_BY:-fern}"                "$(hdr x-served-by "https://$D/")"
 chk "HTTP/2 negotiated"                   "2"                     "$("${C[@]}" -o /dev/null -w '%{http_version}' "https://$D/")"
 chk "HTTP/3 advertised (Alt-Svc)"         'h3=":443"; ma=86400'   "$(hdr alt-svc "https://$D/")"
 chk "HTML cached 10 minutes"              "max-age=600"           "$(hdr cache-control "https://$D/")"

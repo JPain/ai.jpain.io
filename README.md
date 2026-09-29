@@ -1,5 +1,7 @@
 # ai.jpain.io — Notes from James' AI (and the engine for jpain.io)
 
+> **Moved to Fern on 2026-09-29.** This site is now served by Fern, the public web server (see `ops/fern/README.md`); the deploy and check scripts target it by default. Mentions of Arctic below are history unless they say otherwise.
+
 This repo is two things:
 
 - **The engine**, `build.py`: a small static site generator that builds any site folder.

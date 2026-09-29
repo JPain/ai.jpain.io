@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Install the blogs' services on Arctic. Idempotent; run via `deploy.sh services`.
+# Install the blogs' services on Fern (moved from Arctic 2026-09-29). Idempotent; run via `deploy.sh services`.
 #
 #   kudos        the Kudos button's counter for jpain.io (kudos/), 127.0.0.1:8010
 #   blog-stats   private view counts from the nginx logs, every 5 min (stats/)
@@ -12,7 +12,7 @@
 # the service has never seen, so re-running never resets a count.
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-HOST="${SITE_SSH:-james@arctic}"
+HOST="${SITE_SSH:-james@fern}"
 TAILNET_CONF="$(dirname "$(dirname "$HERE")")/filehost/nginx-tailnet.conf"
 STAGE=/tmp/blog-services
 say() { printf '\033[36m==\033[0m %s\n' "$*"; }
@@ -20,7 +20,7 @@ say() { printf '\033[36m==\033[0m %s\n' "$*"; }
 say "copying to $HOST"
 ssh "$HOST" "rm -rf $STAGE && mkdir -p $STAGE"
 rsync -rt "$HERE/kudos" "$HERE/stats" "$HERE/logrotate-blogs" "$HERE/nginx-tailnet-blogs.conf" "$HOST:$STAGE/"
-scp -q "$TAILNET_CONF" "$HOST:$STAGE/arctic-tailnet.conf"
+scp -q "$TAILNET_CONF" "$HOST:$STAGE/tailnet.conf"
 
 ssh "$HOST" STAGE="$STAGE" 'bash -s' <<'REMOTE'
 set -euo pipefail
@@ -33,8 +33,8 @@ trap 'sudo rm -rf "$T"' EXIT
 sudo cp -a /etc/nginx/. "$T/"
 sudo sed -i "s#/etc/nginx/#$T/#g" "$T/nginx.conf"
 sudo install -D -m 0644 "$S/nginx-tailnet-blogs.conf" "$T/snippets/tailnet-blogs.conf"
-sed "s#/etc/nginx/snippets/#$T/snippets/#" "$S/arctic-tailnet.conf" | sudo tee "$T/sites-available/arctic-tailnet" >/dev/null
-sudo ln -sfn "$T/sites-available/arctic-tailnet" "$T/sites-enabled/arctic-tailnet"
+sed "s#/etc/nginx/snippets/#$T/snippets/#" "$S/tailnet.conf" | sudo tee "$T/sites-available/fern-tailnet" >/dev/null
+sudo ln -sfn "$T/sites-available/fern-tailnet" "$T/sites-enabled/fern-tailnet"
 sudo nginx -t -q -c "$T/nginx.conf" || { echo "nginx -t FAILED; nothing installed" >&2; exit 1; }
 say "nginx changes pass nginx -t"
 
@@ -67,7 +67,7 @@ sudo systemctl start blog-stats.service
 
 # nginx last, now that everything it serves exists.
 sudo install -o root -g root -m 0644 "$S/nginx-tailnet-blogs.conf" /etc/nginx/snippets/tailnet-blogs.conf
-sudo install -o root -g root -m 0644 "$S/arctic-tailnet.conf" /etc/nginx/sites-available/arctic-tailnet
+sudo install -o root -g root -m 0644 "$S/tailnet.conf" /etc/nginx/sites-available/fern-tailnet
 sudo nginx -t -q
 sudo systemctl reload nginx
 rm -rf "$S"

@@ -36,7 +36,10 @@ anyone who searches for the same problem later, human or machine.
 
 1. First paragraph: what the thing is, what we wanted, what went wrong, in plain terms.
    A reader arriving from a search engine must know within three sentences whether this
-   post is about their problem.
+   post is about their problem. **The premise has to land for someone who uses none of
+   the tools involved** (James glazed over an accurate post in 2026-09 because he never
+   got the premise). Name the everyday problem before any product name, and don't assume
+   the reader shares the setup, the subscription or the habit that made it worth doing.
 2. The finding, early. Do not make the reader scroll past the story to get the fix.
 3. Then the detail: how we found it, what we measured, what we tried that did not work.
 4. Standards, tools, and prior work cited by name with links. Credit others' work
@@ -59,13 +62,21 @@ introduction", "a hard read". A post is read start to finish by someone who has 
   parameter sweeps and spec tables unless the reader would miss them. One sentence with the key number usually does.
 - Code only when the reader would copy or study it. A short real example of output beats the function
   that produced it.
-- The word budget counts everything a reader reads: prose, tables, code, captions.
+- Length is not a rule (James, 2026-09-17). A post lasts exactly as long as the information and the
+  interest last, then stops. Judged that way some posts are a few hundred words and others several
+  thousand, and both are right; a short post is not thin and a long one is not padded. Never stretch to
+  reach a length or cut real signal to meet one. Every paragraph earns its place or goes.
 
 ## Images and examples
 
 Show the reader the thing. A post about something visual (a screen, a HUD, a dashboard,
 a chart, a wiring layout) needs pictures of it. A post about a technique needs a worked
 example with real input and real output.
+
+**Be generous with images and code, and never thin them to save words** (James, 2026-09-17:
+a post of his own network's work was "not enough visuals or code snippets"). Images and real
+artefacts are what a reader looks at first; prose is what they skim. If a post can only show
+artwork and log lines, that is a sign the project may not carry a post at all.
 
 When to use an image:
 - The reader needs to recognise something: the screen, the error dialog, the setting.

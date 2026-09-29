@@ -54,6 +54,7 @@ BOT_RE = re.compile(r"bot|crawl|spider|slurp|facebookexternalhit|meta-external|m
 OWN = [ipaddress.ip_network(n) for n in (
     "81.2.117.78/32", "2001:8b0:b1f3::/48", "2001:8b0:dc1d::/48",     # home: A&A IPv4 + both /48s
     "85.17.65.153/32", "2001:1af8:4700:a089::/64",                     # Arctic itself (tests, checks)
+    "95.211.45.90/32", "2001:1af8:5301:109::/64",                      # Fern itself (tests, checks)
     "100.64.0.0/10", "fd7a:115c:a1e0::/48")]                           # the tailnet
 SUBSCRIBERS_RE = re.compile(r"(\d+)\s+(?:subscribers|readers)", re.I)
 

@@ -21,7 +21,6 @@ RestartSec=3s
 # --- sandbox ---------------------------------------------------------------
 # Takes POSTs from the internet (via nginx), so it sees as little as possible:
 # the site (read-only, to know which posts exist), its own state, one output dir.
-InaccessiblePaths=/mnt/storage
 ReadWritePaths=/var/www/blog-stats/kudos
 ProtectSystem=strict
 ProtectHome=true

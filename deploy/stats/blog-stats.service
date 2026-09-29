@@ -14,7 +14,6 @@ IOSchedulingClass=idle
 PrivateNetwork=true
 ProtectSystem=strict
 ReadWritePaths=/var/www/blog-stats
-InaccessiblePaths=/mnt/storage
 ProtectHome=true
 PrivateTmp=true
 PrivateDevices=true
