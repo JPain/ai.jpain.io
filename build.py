@@ -329,13 +329,40 @@ def byline(p):
 QUOTES = []
 
 
+# The label's icon: one face, human on the left and robot on the right, split where the level
+# says. 20 = all human, 0 = all robot. Each half is a nested <svg>, which clips its own
+# drawing, so no clipPath ids are needed.
+AI_FACE_SPLIT = {"human": 20, "researched": 15, "assisted": 10, "reviewed": 5, "unreviewed": 0, "ai": 0}
+FACE_HUMAN = ('<circle cx="10" cy="10.5" r="7.5"/><path d="M3.4 8.6Q5.2 3.2 10 3.1Q14.8 3.2 16.6 8.6"/>'
+              '<circle class="dot" cx="7.3" cy="10" r="1.05"/><circle class="dot" cx="12.7" cy="10" r="1.05"/>'
+              '<path d="M7 13.4Q10 16 13 13.4"/>')
+FACE_ROBOT = ('<rect x="2.6" y="4.6" width="14.8" height="13" rx="2.6"/><path d="M10 4.6V2.2"/>'
+              '<circle class="dot" cx="10" cy="1.7" r="1.1"/><rect class="dot" x="6" y="8.6" width="2.7" height="2.7" rx=".4"/>'
+              '<rect class="dot" x="11.3" y="8.6" width="2.7" height="2.7" rx=".4"/><path d="M7 14.2H13"/>')
+WRENCH = '<path d="M15.2 3.3a4.3 4.3 0 0 0-5.6 5.6L3.3 15.2l1.5 1.5 6.3-6.3a4.3 4.3 0 0 0 5.6-5.6l-2.5 2.5-2-2z"/>'
+
+
+def ai_icon(key):
+    if key == "tools":
+        return f'<svg class="ai-icon" viewBox="0 0 20 20" aria-hidden="true"><g class="ai-tool">{WRENCH}</g></svg>'
+    s = AI_FACE_SPLIT.get(key, 10)
+    out = '<svg class="ai-icon" viewBox="0 0 20 20" aria-hidden="true">'
+    if s:
+        out += f'<svg width="{s}" height="20" viewBox="0 0 {s} 20"><g class="ai-human">{FACE_HUMAN}</g></svg>'
+    if s < 20:
+        out += f'<svg x="{s}" width="{20 - s}" height="20" viewBox="{s} 0 {20 - s} 20"><g class="ai-robot">{FACE_ROBOT}</g></svg>'
+    if 0 < s < 20:
+        out += f'<path class="ai-split" d="M{s} 0V20"/>'
+    return out + "</svg>"
+
+
 def ai_panel(key, body, after=""):
     """A self-contained AI label: the label is the button, and opening it shows `body`,
     or, when there's nothing more to say, what the level means. `after` goes inside the label, after its text."""
     lvl = SITE["ai_levels"][key]
     body = body or f'<p>{esc(lvl["summary"])}</p>'
     return (f'<summary class="ai-summary" title="{esc(lvl["summary"])}"><span class="ai-label ai-{esc(key)}">'
-            f'{esc(lvl["label"])}{after}</span></summary><div class="ai-panel">{body}</div>')
+            f'{ai_icon(key)}{esc(lvl["label"])}{after}</span></summary><div class="ai-panel">{body}</div>')
 
 
 def ai_disclosure(p):
@@ -348,7 +375,7 @@ def ai_disclosure(p):
              if p.get("ai_agent") else "")
     if p.get("ai_parts"):
         who = SITE["ai_part_levels"]
-        rows = "".join(f'<dt>{esc(part)}</dt><dd><span class="ai-label ai-{esc(k)}">{esc(who[k])}</span> {esc(detail)}</dd>'
+        rows = "".join(f'<dt>{esc(part)}</dt><dd><span class="ai-label ai-{esc(k)}">{ai_icon(k)}{esc(who[k])}</span> {esc(detail)}</dd>'
                        for part, k, detail in p["ai_parts"])
         body = f'<dl>{rows}</dl>'
     else:
