@@ -25,7 +25,7 @@ front matter between `---` lines, as in Bear's export. Keys used: title (require
 (defaults from the filename), published_date (YYYY-MM-DD, YYYY-MM-DD HH:MM or ISO 8601 with a
 zone; defaults to now), tags (comma-separated), summary or meta_description (one line for the
 index, feed and description meta), meta_image (share image; defaults to the post's first image),
-updated (date of a real revision: dateModified and sitemap lastmod), author (byline override), ai and ai_note (AI disclosure, levels in site.json "ai_levels"),
+updated (date of a real revision: dateModified and sitemap lastmod), author (byline override), ai, ai_note and ai_part (AI disclosure, levels in site.json "ai_levels"),
 publish (false = not built), promoted (URL of a rewritten version on jpain.io), model and
 model_id (provenance; required on ai.jpain.io). Everything else is ignored.
 """
@@ -328,47 +328,43 @@ def byline(p):
 QUOTES = []
 
 
-def ai_label(p):
-    """The AI-disclosure label for the meta line, linking to the page that defines the levels.
+def ai_panel(key, body):
+    """A self-contained AI label: the label itself is the button, and opening it shows
+    what the level means, then anything more the post says."""
+    lvl = SITE["ai_levels"][key]
+    return (f'<summary class="ai-label ai-{esc(key)}">{esc(lvl["label"])}</summary>'
+            f'<div class="ai-panel"><p>{esc(lvl["summary"])}</p>{body}</div>')
 
-    "ai_levels" in site.json names the levels; a post picks one with `ai:` and may add
-    `ai_note:`, one sentence on what AI did in this post. No `ai:`, no label."""
+
+def ai_disclosure(p):
+    """The post's AI label, under the title. `ai:` picks a level from site.json "ai_levels";
+    `ai_note:` adds a sentence and `ai_part:` lines a breakdown, both shown when it's opened."""
     if not p.get("ai"):
         return ""
-    lvl = SITE["ai_levels"][p["ai"]]
-    return (f'<a class="ai-label ai-{esc(p["ai"])}" href="{esc(SITE.get("ai_page", "/ai/"))}" '
-            f'title="{esc(lvl["summary"])}">{esc(lvl["label"])}</a>')
+    body = f'<p>{esc(p["ai_note"])}</p>' if p.get("ai_note") else ""
+    if p.get("ai_parts"):
+        who = SITE["ai_part_levels"]
+        rows = "".join(f'<dt>{esc(part)}</dt><dd><span class="ai-label ai-{esc(k)}">{esc(who[k])}</span> {esc(detail)}</dd>'
+                       for part, k, detail in p["ai_parts"])
+        body += f'<p class="ai-panel-head">What AI did and didn\'t do in this post</p><dl>{rows}</dl>'
+    return f'<details class="ai-disclosure">{ai_panel(p["ai"], body)}</details>'
 
 
 AI_INLINE = re.compile(r"<p>\[ai:\s*([a-z]+)\s*(?:\|\s*(.*?))?\]</p>")
 
 
 def ai_inline(html_text, path):
-    """A line `[ai: level]` or `[ai: level | note]` in a post labels the block after it:
-    a code block, table, figure or paragraph. For marking, in place, what AI made and
-    especially what hasn't been reviewed. Levels are the site's ai_levels."""
+    """A line `[ai: level]` or `[ai: level | note]` in a post labels the block after it (a code
+    block, table, figure or paragraph), for marking in place what AI made, and especially
+    what hasn't been reviewed."""
     levels = SITE.get("ai_levels", {})
 
     def label(m):
         key, note = m.group(1), m.group(2) or ""
         if key not in levels:
             sys.exit(f"{path}: [ai: {key}] must be one of {', '.join(levels) or '(none in site.json)'}")
-        lvl = levels[key]
-        note_html = f' <span class="ai-inline-note">{note}</span>' if note else ""
-        return (f'<p class="ai-inline"><a class="ai-label ai-{key}" href="{esc(SITE.get("ai_page", "/ai/"))}" '
-                f'title="{esc(lvl["summary"])}">{esc(lvl["label"])}</a>{note_html}</p>')
+        return f'<details class="ai-inline">{ai_panel(key, f"<p>{note}</p>" if note else "")}</details>'
     return AI_INLINE.sub(label, html_text)
-
-
-def ai_note(p):
-    out = f'<p class="ai-note">{esc(p["ai_note"])}</p>' if p.get("ai") and p.get("ai_note") else ""
-    if p.get("ai_parts"):
-        who = SITE["ai_part_levels"]
-        rows = "".join(f'<dt>{esc(part)}</dt><dd><span class="ai-label ai-{esc(k)}">{esc(who[k])}</span> {esc(detail)}</dd>'
-                       for part, k, detail in p["ai_parts"])
-        out += (f'<details class="ai-parts"><summary>What AI did and didn\'t do in this post</summary>'
-                f'<dl>{rows}</dl></details>')
-    return out
 
 
 def quote_for(key):
@@ -540,8 +536,7 @@ def build():
             slug=p["slug"],
             tags=tag_links(p["tags"]),
             author=byline(p),
-            ai=ai_label(p),
-            ai_note=ai_note(p),
+            ai=ai_disclosure(p),
             promoted=promoted,
             content=p["html"] + rfc_box(p["rfcs"]),
         )
