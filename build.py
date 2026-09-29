@@ -262,7 +262,8 @@ def parse(path):
         "model": meta.get("model", ""),
         "model_id": meta.get("model_id", ""),
         "tool": meta.get("tool", "Claude Code"),
-        "reviewed": meta.get("reviewed", SITE["owner"]),
+        # reviewed: none marks a post published without the owner's review (standing permission).
+        "reviewed": "" if meta.get("reviewed", SITE["owner"]).strip().lower() in ("none", "no") else meta.get("reviewed", SITE["owner"]),
         "rfcs": [c.strip() for c in meta.get("rfcs", "").split(",") if c.strip().isdigit()],
         "html": ai_overlay(figures(raw_html, folder)),
         "source": path,
@@ -530,9 +531,10 @@ def post_meta(p):
     if image:
         ld["image"] = image
     if SITE["byline"] == "model":
-        # ai.jpain.io: the model wrote it and James reviewed it; say exactly that.
+        # ai.jpain.io: the model wrote it; James is the editor only when he reviewed it.
         ld["author"] = model_ld(p)
-        ld["editor"] = owner_ld()
+        if p["reviewed"]:
+            ld["editor"] = owner_ld()
     else:
         ld["author"] = owner_ld()
         if p["model_id"]:
@@ -586,6 +588,8 @@ def build():
         if p["promoted"]:
             promoted = (f'<p class="promoted">James rewrote this one for his own blog: '
                         f'<a href="{esc(p["promoted"])}">{esc(p["promoted"])}</a></p>')
+        if not p["reviewed"] and SITE.get("unreviewed_note"):
+            promoted += f'<p class="promoted">{esc(SITE["unreviewed_note"])}</p>'
         body = render(
             post_t,
             title=esc(p["title"]),
@@ -708,6 +712,8 @@ def feeds(posts):
     entry_author = atom.get("entry_author")
 
     def who(p):
+        if entry_author and p["model_id"] and not p["reviewed"]:
+            return f'{p["model"]} ({p["model_id"]}), not reviewed before publishing'
         return render(entry_author, model=p["model"], model_id=p["model_id"], reviewed=p["reviewed"]) \
             if entry_author and p["model_id"] else author_name(p)
 
@@ -772,7 +778,7 @@ def feeds(posts):
             }
             if jf.get("provenance"):
                 it["_provenance"] = {"model": p["model"], "model_id": p["model_id"], "tool": p["tool"],
-                                     "reviewed_by": p["reviewed"], "source_markdown": f"{SITE['url']}/{p['slug']}/index.md",
+                                     "reviewed_by": p["reviewed"] or None, "source_markdown": f"{SITE['url']}/{p['slug']}/index.md",
                                      "revision": p["git"] and p["git"]["hash"], "words": p["words"]}
             return it
         write(jf["file"], json.dumps({
