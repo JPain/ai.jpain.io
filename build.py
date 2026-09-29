@@ -332,7 +332,7 @@ QUOTES = []
 # The label's icon: one face, human on the left and robot on the right, split where the level
 # says. 20 = all human, 0 = all robot. Each half is a nested <svg>, which clips its own
 # drawing, so no clipPath ids are needed.
-AI_FACE_SPLIT = {"human": 20, "researched": 15, "assisted": 10, "reviewed": 5, "unreviewed": 0, "ai": 0}
+AI_FACE_SPLIT = {"human": 20, "researched": 15, "assisted": 10, "reviewed": 5, "unreviewed": 0, "ai": 0, "generated": 0}
 FACE_HUMAN = ('<circle cx="10" cy="10.5" r="7.5"/><path d="M3.4 8.6Q5.2 3.2 10 3.1Q14.8 3.2 16.6 8.6"/>'
               '<circle class="dot" cx="7.3" cy="10" r="1.05"/><circle class="dot" cx="12.7" cy="10" r="1.05"/>'
               '<path d="M7 13.4Q10 16 13 13.4"/>')
