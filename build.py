@@ -264,7 +264,7 @@ def parse(path):
         "tool": meta.get("tool", "Claude Code"),
         "reviewed": meta.get("reviewed", SITE["owner"]),
         "rfcs": [c.strip() for c in meta.get("rfcs", "").split(",") if c.strip().isdigit()],
-        "html": figures(raw_html, folder),
+        "html": ai_overlay(figures(raw_html, folder)),
         "source": path,
     }
 
@@ -413,10 +413,16 @@ def ai_inline(html_text, path):
         key, note = m.group(1), m.group(2) or ""
         if key not in levels:
             sys.exit(f"{path}: [ai: {key}] must be one of {', '.join(levels) or '(none in site.json)'}")
-        lvl = levels[key]
-        return (f'<p class="ai-inline" title="{esc(lvl["summary"])}">{ai_icon(key)}'
-                f'<span>{note or esc(lvl["label"])}</span></p>')
+        return f'<p class="ai-inline">{ai_icon(key)}<span>{note or esc(levels[key]["label"])}</span></p>'
     return AI_INLINE.sub(label, html_text)
+
+
+AI_OVER = re.compile(r'<p class="ai-inline">(.*?)</p>\s*<figure>')
+
+
+def ai_overlay(html_text):
+    """An inline AI caption right before an image moves onto the image, as a badge in its corner."""
+    return AI_OVER.sub(r'<figure class="ai-over"><span class="ai-badge">\1</span>', html_text)
 
 
 def quote_for(key):
