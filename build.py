@@ -359,15 +359,16 @@ def ai_icon(key):
 
 
 def ai_emoji(key):
-    """The same split as ai_icon, with emoji: 🙂 on the left, 🤖 on the right, each clipped by a
+    """The same split as ai_icon, with emoji: the human emoji (site.json "ai_human_emoji", default 🙂) on the left, 🤖 on the right, each clipped by a
     CSS class (ai-h-<human %>), since the CSP bans inline styles. site.json "ai_icon": "emoji"."""
     if key == "tools":
         return '<span class="ai-emoji" aria-hidden="true"><span>🔧</span></span>'
     human = AI_FACE_SPLIT.get(key, 10) * 5
+    me = SITE.get("ai_human_emoji", "🙂")
     if human in (0, 100):
-        return f'<span class="ai-emoji" aria-hidden="true"><span>{"🙂" if human else "🤖"}</span></span>'
+        return f'<span class="ai-emoji" aria-hidden="true"><span>{me if human else "🤖"}</span></span>'
     return (f'<span class="ai-emoji ai-h-{human}" aria-hidden="true">'
-            f'<span class="h">🙂</span><span class="r">🤖</span></span>')
+            f'<span class="h">{me}</span><span class="r">🤖</span></span>')
 
 
 def ai_panel(key, body, after=""):
