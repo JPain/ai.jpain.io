@@ -25,7 +25,7 @@ front matter between `---` lines, as in Bear's export. Keys used: title (require
 (defaults from the filename), published_date (YYYY-MM-DD, YYYY-MM-DD HH:MM or ISO 8601 with a
 zone; defaults to now), tags (comma-separated), summary or meta_description (one line for the
 index, feed and description meta), meta_image (share image; defaults to the post's first image),
-updated (date of a real revision: dateModified and sitemap lastmod), author (byline override),
+updated (date of a real revision: dateModified and sitemap lastmod), author (byline override), ai and ai_note (AI disclosure, levels in site.json "ai_levels"),
 publish (false = not built), promoted (URL of a rewritten version on jpain.io), model and
 model_id (provenance; required on ai.jpain.io). Everything else is ignored.
 """
@@ -206,6 +206,9 @@ def parse(path):
     for k in SITE["required"]:
         if not meta.get(k):
             sys.exit(f"{path}: missing header key '{k}' (required by {ROOT.name}/site.json)")
+    levels = SITE.get("ai_levels", {})
+    if meta.get("ai") and meta["ai"].strip().lower() not in levels:
+        sys.exit(f"{path}: ai: must be one of {', '.join(levels) or '(none: site.json has no ai_levels)'}")
     slug = meta.get("link") or meta.get("slug") or path.stem
     if not re.fullmatch(r"[a-z0-9-]+", slug):
         sys.exit(f"{path}: bad slug {slug!r}")
@@ -239,6 +242,8 @@ def parse(path):
         "summary": meta.get("summary") or meta.get("meta_description", ""),
         "image": meta.get("meta_image", ""),
         "author": meta.get("author", ""),
+        "ai": meta.get("ai", "").strip().lower(),
+        "ai_note": meta.get("ai_note", ""),
         "publish": meta.get("publish", "true").lower() != "false",
         "promoted": meta.get("promoted", ""),
         "model": meta.get("model", ""),
@@ -309,6 +314,22 @@ def byline(p):
 
 
 QUOTES = []
+
+
+def ai_label(p):
+    """The AI-disclosure label for the meta line, linking to the page that defines the levels.
+
+    "ai_levels" in site.json names the levels; a post picks one with `ai:` and may add
+    `ai_note:`, one sentence on what AI did in this post. No `ai:`, no label."""
+    if not p.get("ai"):
+        return ""
+    lvl = SITE["ai_levels"][p["ai"]]
+    return (f'<a class="ai-label ai-{esc(p["ai"])}" href="{esc(SITE.get("ai_page", "/ai/"))}" '
+            f'title="{esc(lvl["summary"])}">{esc(lvl["label"])}</a>')
+
+
+def ai_note(p):
+    return f'<p class="ai-note">{esc(p["ai_note"])}</p>' if p.get("ai") and p.get("ai_note") else ""
 
 
 def quote_for(key):
@@ -399,6 +420,8 @@ def post_meta(p):
     url = f'{SITE["url"]}/{p["slug"]}/'
     image = post_image(p)
     out = f'<meta name="ai-model" content="{esc(p["model_id"])}">\n' if p["model_id"] else ""
+    if p.get("ai"):
+        out += f'<meta name="ai-disclosure" content="{esc(p["ai"])}">\n'
     out += head_meta(f'/{p["slug"]}/', p["title"], p["summary"], "article", image)
     if SITE.get("share_cards"):
         out += f'\n<meta property="article:published_time" content="{iso(p["date"])}">'
@@ -478,6 +501,8 @@ def build():
             slug=p["slug"],
             tags=tag_links(p["tags"]),
             author=byline(p),
+            ai=ai_label(p),
+            ai_note=ai_note(p),
             promoted=promoted,
             content=p["html"] + rfc_box(p["rfcs"]),
         )
