@@ -209,6 +209,16 @@ def parse(path):
     levels = SITE.get("ai_levels", {})
     if meta.get("ai") and meta["ai"].strip().lower() not in levels:
         sys.exit(f"{path}: ai: must be one of {', '.join(levels) or '(none: site.json has no ai_levels)'}")
+    # ai_part: may repeat, one line per part: "Part | who | detail", who from "ai_part_levels".
+    ai_parts = []
+    for line in head.splitlines():
+        k, _, v = line.partition(":")
+        if k.strip().lower() == "ai_part":
+            bits = [b.strip() for b in v.split("|", 2)]
+            who = SITE.get("ai_part_levels", {})
+            if len(bits) != 3 or bits[1].lower() not in who:
+                sys.exit(f"{path}: ai_part: needs 'Part | who | detail', who one of {', '.join(who) or '(none in site.json)'}")
+            ai_parts.append((bits[0], bits[1].lower(), bits[2]))
     slug = meta.get("link") or meta.get("slug") or path.stem
     if not re.fullmatch(r"[a-z0-9-]+", slug):
         sys.exit(f"{path}: bad slug {slug!r}")
@@ -244,6 +254,7 @@ def parse(path):
         "author": meta.get("author", ""),
         "ai": meta.get("ai", "").strip().lower(),
         "ai_note": meta.get("ai_note", ""),
+        "ai_parts": ai_parts,
         "publish": meta.get("publish", "true").lower() != "false",
         "promoted": meta.get("promoted", ""),
         "model": meta.get("model", ""),
@@ -329,7 +340,14 @@ def ai_label(p):
 
 
 def ai_note(p):
-    return f'<p class="ai-note">{esc(p["ai_note"])}</p>' if p.get("ai") and p.get("ai_note") else ""
+    out = f'<p class="ai-note">{esc(p["ai_note"])}</p>' if p.get("ai") and p.get("ai_note") else ""
+    if p.get("ai_parts"):
+        who = SITE["ai_part_levels"]
+        rows = "".join(f'<dt>{esc(part)}</dt><dd><span class="ai-label ai-{esc(k)}">{esc(who[k])}</span> {esc(detail)}</dd>'
+                       for part, k, detail in p["ai_parts"])
+        out += (f'<details class="ai-parts"><summary>What AI did and didn\'t do in this post</summary>'
+                f'<dl>{rows}</dl></details>')
+    return out
 
 
 def quote_for(key):
