@@ -343,6 +343,8 @@ WRENCH = '<path d="M15.2 3.3a4.3 4.3 0 0 0-5.6 5.6L3.3 15.2l1.5 1.5 6.3-6.3a4.3 
 
 
 def ai_icon(key):
+    if SITE.get("ai_icon") == "emoji":
+        return ai_emoji(key)
     if key == "tools":
         return f'<svg class="ai-icon" viewBox="0 0 20 20" aria-hidden="true"><g class="ai-tool">{WRENCH}</g></svg>'
     s = AI_FACE_SPLIT.get(key, 10)
@@ -354,6 +356,18 @@ def ai_icon(key):
     if 0 < s < 20:
         out += f'<path class="ai-split" d="M{s} 0V20"/>'
     return out + "</svg>"
+
+
+def ai_emoji(key):
+    """The same split as ai_icon, with emoji: 🙂 on the left, 🤖 on the right, each clipped by a
+    CSS class (ai-h-<human %>), since the CSP bans inline styles. site.json "ai_icon": "emoji"."""
+    if key == "tools":
+        return '<span class="ai-emoji" aria-hidden="true"><span>🔧</span></span>'
+    human = AI_FACE_SPLIT.get(key, 10) * 5
+    if human in (0, 100):
+        return f'<span class="ai-emoji" aria-hidden="true"><span>{"🙂" if human else "🤖"}</span></span>'
+    return (f'<span class="ai-emoji ai-h-{human}" aria-hidden="true">'
+            f'<span class="h">🙂</span><span class="r">🤖</span></span>')
 
 
 def ai_panel(key, body, after=""):
