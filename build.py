@@ -710,6 +710,8 @@ def check_images(post):
         # Copies sharing a used image's name (negotiated.avif beside negotiated.jpg) are the
         # alternatives nginx picks between for format negotiation, not strays.
         stems = {Path(u).stem for u in used}
+        # The hold-to-compare originals (data-b="x.png" on a panel) are used too.
+        used |= set(re.findall(r'data-b="([^"/]+)"', post["html"]))
         # ...and files a live demo loads are named in its own .js, .css or .html.
         demo_text = "".join(f.read_text(errors="ignore") for f in folder.iterdir()
                             if f.suffix.lower() in (".js", ".css", ".html"))
