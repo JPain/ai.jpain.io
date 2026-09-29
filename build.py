@@ -331,20 +331,21 @@ QUOTES = []
 
 def ai_panel(key, body, after=""):
     """A self-contained AI label: the label is the button, and opening it shows `body`,
-    or, when there's nothing more to say, what the level means. `after` sits beside the label."""
+    or, when there's nothing more to say, what the level means. `after` goes inside the label, after its text."""
     lvl = SITE["ai_levels"][key]
     body = body or f'<p>{esc(lvl["summary"])}</p>'
     return (f'<summary class="ai-summary" title="{esc(lvl["summary"])}"><span class="ai-label ai-{esc(key)}">'
-            f'{esc(lvl["label"])}</span>{after}</summary><div class="ai-panel">{body}</div>')
+            f'{esc(lvl["label"])}{after}</span></summary><div class="ai-panel">{body}</div>')
 
 
 def ai_disclosure(p):
     """The post's AI label, under the title. `ai:` picks a level from site.json "ai_levels" and
-    `ai_agent:` names the AI beside it, like a byline. Opening it shows the `ai_part:` breakdown
+    `ai_agent:` names the AI inside it, like a byline. Opening it shows the `ai_part:` breakdown
     (or, without one, the level's meaning and any `ai_note:`)."""
     if not p.get("ai"):
         return ""
-    agent = f'<span class="ai-agent">{esc(p["ai_agent"])}</span>' if p.get("ai_agent") else ""
+    agent = (f'<span class="ai-sep" aria-hidden="true">|</span><span class="ai-agent">{esc(p["ai_agent"])}</span>'
+             if p.get("ai_agent") else "")
     if p.get("ai_parts"):
         who = SITE["ai_part_levels"]
         rows = "".join(f'<dt>{esc(part)}</dt><dd><span class="ai-label ai-{esc(k)}">{esc(who[k])}</span> {esc(detail)}</dd>'
