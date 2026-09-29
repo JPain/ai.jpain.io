@@ -237,6 +237,7 @@ def parse(path):
     words = len(re.findall(r"\S+", body))
     folder = media_dir(path, slug)
     raw_html = md.convert(bear_markdown(body) if SITE.get("bear_markdown") else body)
+    raw_html = ai_inline(raw_html, path)
     return {
         "media": folder,
         "images": images_in(raw_html),
@@ -337,6 +338,26 @@ def ai_label(p):
     lvl = SITE["ai_levels"][p["ai"]]
     return (f'<a class="ai-label ai-{esc(p["ai"])}" href="{esc(SITE.get("ai_page", "/ai/"))}" '
             f'title="{esc(lvl["summary"])}">{esc(lvl["label"])}</a>')
+
+
+AI_INLINE = re.compile(r"<p>\[ai:\s*([a-z]+)\s*(?:\|\s*(.*?))?\]</p>")
+
+
+def ai_inline(html_text, path):
+    """A line `[ai: level]` or `[ai: level | note]` in a post labels the block after it:
+    a code block, table, figure or paragraph. For marking, in place, what AI made and
+    especially what hasn't been reviewed. Levels are the site's ai_levels."""
+    levels = SITE.get("ai_levels", {})
+
+    def label(m):
+        key, note = m.group(1), m.group(2) or ""
+        if key not in levels:
+            sys.exit(f"{path}: [ai: {key}] must be one of {', '.join(levels) or '(none in site.json)'}")
+        lvl = levels[key]
+        note_html = f' <span class="ai-inline-note">{note}</span>' if note else ""
+        return (f'<p class="ai-inline"><a class="ai-label ai-{key}" href="{esc(SITE.get("ai_page", "/ai/"))}" '
+                f'title="{esc(lvl["summary"])}">{esc(lvl["label"])}</a>{note_html}</p>')
+    return AI_INLINE.sub(label, html_text)
 
 
 def ai_note(p):
