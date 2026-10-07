@@ -112,8 +112,11 @@ def figures(html_text, folder):
 
 
 def absolute_images(html_text, slug):
-    """Feeds are read out of context, so image paths must be absolute there."""
-    return re.sub(r'src="(?![a-z]+://|/)([^"]+)"', lambda m: f'src="{SITE["url"]}/{slug}/{m.group(1)}"', html_text)
+    """Feeds are read out of context, so image and link paths must be absolute there."""
+    def fix(m):
+        attr, path = m.group(1), m.group(2)
+        return f'{attr}="{SITE["url"]}{path}"' if path.startswith("/") else f'{attr}="{SITE["url"]}/{slug}/{path}"'
+    return re.sub(r'\b(src|href|poster)="(?![a-z][a-z0-9+.-]*:|#|//)([^"]+)"', fix, html_text)
 
 
 MD_EXTENSIONS = ["tables", "fenced_code", "codehilite", "toc", "smarty", "attr_list"]
@@ -253,6 +256,9 @@ def parse(path):
         "updated": updated,
         "tags": tags,
         "summary": meta.get("summary") or meta.get("meta_description", ""),
+        # The search-result line: meta_description when set (Google shows about 160 characters),
+        # else the summary, which the feeds keep in full.
+        "description": meta.get("meta_description") or meta.get("summary", ""),
         "image": meta.get("meta_image", ""),
         "author": meta.get("author", ""),
         "ai": meta.get("ai", "").strip().lower(),
@@ -470,11 +476,17 @@ def json_ld(data):
 CARD = "og-card.png"   # the generated share card's file name, beside each post and at the site root
 
 
+OG_SIZE = {}   # url -> (width, height) of share images this build wrote
+OG_JPG = "og-image.jpg"   # a JPEG copy of a WebP/AVIF meta_image: LinkedIn and others don't show WebP
+
+
 def post_image(p):
     """The share image: meta_image if set, else the generated card (site.json "card"), else the first image."""
     url = f'{SITE["url"]}/{p["slug"]}/'
     if not p["image"] and SITE.get("card"):
         return url + CARD
+    if (OUT / p["slug"] / OG_JPG).is_file():
+        return url + OG_JPG
     src = p["image"] or next((i["src"] for i in p["images"] if i.get("src") and "://" not in i["src"]), "")
     return src if "://" in src or not src else url + src
 
@@ -494,7 +506,14 @@ def write_card(rel, title, foot_left="", subtitle=""):
 
 
 def post_card(p):
-    """Draw a post's card unless it names its own meta_image."""
+    """Draw a post's card unless it names its own meta_image; a WebP/AVIF meta_image gets a JPEG copy."""
+    src = p["media"] / p["image"] if p["image"] and "://" not in p["image"] else None
+    if src and src.suffix.lower() in (".webp", ".avif") and src.is_file():
+        img = Image.open(src).convert("RGB")
+        if img.width > cards.W:
+            img = img.resize((cards.W, round(img.height * cards.W / img.width)), Image.LANCZOS)
+        img.save(OUT / p["slug"] / OG_JPG, "JPEG", quality=85, optimize=True)
+        OG_SIZE[f'{SITE["url"]}/{p["slug"]}/{OG_JPG}'] = img.size
     if p["image"] or not SITE.get("card"):
         return
     foot = SITE["card"].get("byline", "").format(model=p["model"] or "", author=author_name(p),
@@ -517,6 +536,8 @@ def head_meta(path, title, description, og_type="website", image=""):
                 site_card = image == f'{SITE["url"]}/{CARD}'
                 tags += [("og:image:width", str(cards.W)), ("og:image:height", str(cards.H)),
                          ("og:image:alt", f'{SITE["title"]}: {SITE["tagline"]}' if site_card else title)]
+            elif image in OG_SIZE:
+                tags += [("og:image:width", str(OG_SIZE[image][0])), ("og:image:height", str(OG_SIZE[image][1]))]
         out += "".join(f'\n<meta property="{k}" content="{esc(v)}">' for k, v in tags)
         out += f'\n<meta name="twitter:card" content="{"summary_large_image" if image else "summary"}">'
     return out
@@ -552,7 +573,7 @@ def post_meta(p):
     out = f'<meta name="ai-model" content="{esc(p["model_id"])}">\n' if p["model_id"] else ""
     if p.get("ai"):
         out += f'<meta name="ai-disclosure" content="{esc(p["ai"])}">\n'
-    out += head_meta(f'/{p["slug"]}/', p["title"], p["summary"], "article", image)
+    out += head_meta(f'/{p["slug"]}/', p["title"], p["description"], "article", image)
     if SITE.get("share_cards"):
         out += f'\n<meta property="article:published_time" content="{iso(p["date"])}">'
         if p["updated"] != p["date"]:
@@ -650,7 +671,7 @@ def build():
         if p["media"].is_dir():
             shutil.copytree(p["media"], OUT / p["slug"], dirs_exist_ok=True)
         post_card(p)
-        write(f"{p['slug']}/index.html", page_shell(base, p["title"], body, p["summary"], post_meta(p), key=p["slug"]), img_bytes)
+        write(f"{p['slug']}/index.html", page_shell(base, p["title"], body, p["description"], post_meta(p), key=p["slug"]), img_bytes)
         if SITE.get("markdown_source"):
             write(f"{p['slug']}/index.md", p["raw"])
 
