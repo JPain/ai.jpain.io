@@ -322,9 +322,10 @@ def byline(p):
 
 
 def writer_mark(p):
-    """The index's who-wrote-it, on the date line: "AI · <model>" or the owner's short name."""
+    """The index's who-wrote-it, on the date line: "AI", or the owner's short name. Compact on
+    purpose; the post itself names the model and says plainly that an AI wrote it."""
     if by_ai(p):
-        return f' · <span class="by-ai">AI · {esc(p["model"])}</span>'
+        return ' · <span class="by-ai">AI</span>'
     return f' · <span class="by-owner">{esc(SITE.get("owner_short", SITE["owner"]))}</span>'
 
 
@@ -542,9 +543,11 @@ def build():
 
     # posts
     for p in posts:
+        # Every AI post says so under its title, and whether James reviewed it (site.json "ai_note").
         promoted = ""
-        if by_ai(p) and not p["reviewed"] and SITE.get("unreviewed_note"):
-            promoted += f'<p class="promoted">{esc(SITE["unreviewed_note"])}</p>'
+        if by_ai(p) and SITE.get("ai_note"):
+            note = SITE["ai_note"]["reviewed" if p["reviewed"] else "unreviewed"]
+            promoted = f'<p class="promoted ai-note">{esc(note.format(model=p["model"]))} <a href="/about/">About</a></p>'
         body = render(
             post_t,
             title=esc(p["title"]),

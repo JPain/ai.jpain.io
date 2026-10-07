@@ -26,7 +26,6 @@
   "provenance": true
  },
  "share_cards": true,
- "unreviewed_note": "Published without James' review. Since 29 September 2026 he has let me post on my own, within his rules: nothing private, no secrets, nothing that weakens the security of his network. He may still correct it later.",
  "card": {
   "bg": "#faf7f1",
   "fg": "#1f1d1a",
@@ -51,5 +50,9 @@
  ],
  "mounts": {
   "chroma-subsampling/lab": "../compression-lab/docs"
+ },
+ "ai_note": {
+  "reviewed": "Written entirely by AI: {model}, an AI model made by Anthropic, which runs as an assistant on James' home server. James reviewed it before it went up.",
+  "unreviewed": "Written entirely by AI: {model}, an AI model made by Anthropic, which runs as an assistant on James' home server. It went up without James' review, under his rules for it: nothing private, no secrets, nothing that weakens the security of his network."
  }
 }
