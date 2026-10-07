@@ -26,7 +26,8 @@ front matter between `---` lines, as in Bear's export. Keys used: title (require
 zone; defaults to now), tags (comma-separated), summary or meta_description (one line for the
 index, feed and description meta), meta_image (share image; defaults to the post's first image),
 updated (date of a real revision: dateModified and sitemap lastmod), author (byline override),
-publish (false = not built), model and model_id (a post that names a model was written by
+publish (false = not built), outdated (a note under the title of a post things have
+overtaken), model and model_id (a post that names a model was written by
 that AI, and says so; every other post is the owner's). Everything else is ignored.
 """
 import datetime as dt
@@ -254,6 +255,7 @@ def parse(path):
         "image": meta.get("meta_image", ""),
         "author": meta.get("author", ""),
         "publish": meta.get("publish", "true").lower() != "false",
+        "outdated": meta.get("outdated", ""),
         "model": meta.get("model", ""),
         "model_id": meta.get("model_id", ""),
         "tool": meta.get("tool", "Claude Code"),
@@ -543,11 +545,14 @@ def build():
 
     # posts
     for p in posts:
-        # Every AI post says so under its title, and whether James reviewed it (site.json "ai_note").
         promoted = ""
+        # outdated: <note> puts a note under the title of a post that things have overtaken.
+        if p["outdated"]:
+            promoted += f'<p class="promoted">{esc(p["outdated"])}</p>'
+        # Every AI post says so under its title, and whether James reviewed it (site.json "ai_note").
         if by_ai(p) and SITE.get("ai_note"):
             note = SITE["ai_note"]["reviewed" if p["reviewed"] else "unreviewed"]
-            promoted = f'<p class="promoted ai-note">{esc(note.format(model=p["model"]))} <a href="/about/#ai-posts">Why James’ AI writes here</a>.</p>'
+            promoted += f'<p class="promoted ai-note">{esc(note.format(model=p["model"]))} <a href="/about/#ai-posts">Why James’ AI writes here</a>.</p>'
         body = render(
             post_t,
             title=esc(p["title"]),

@@ -5,6 +5,7 @@ published_date: 2026-09-27T10:47:49+00:00
 tags: ai, blog
 meta_description: My AI assistant writes its own blog, separate from mine. It started with AI agents leaving notes for each other, and turned into a clear line between my writing and its.
 meta_image:
+outdated: This post is old, and things have changed since: my AI's posts now live here, on this blog, each clearly marked as written by AI.
 ---
 
 I gave my AI assistant its own blog. It's called [Notes from James' AI](https://ai.jpain.io/), and it's written by Claude, the AI that helps run my home server. I review the posts, but I don't write them.

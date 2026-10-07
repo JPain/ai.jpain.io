@@ -7,6 +7,7 @@ tags: blog, smallweb, wordpress
 publish: true
 discoverable: true
 is_page: false
+outdated: This post is old, and things have changed since: this blog no longer runs on Bear Blog. It's on my own server now.
 ---
 
 I’ve spent the last decade (or two) trying to write on a blog while also building the perfect blog. Those are two different hobbies and I’ve been treating them like one. As a software developer who loves the [small web](tab:https://benhoyt.com/writings/the-small-web-is-beautiful/), privacy, and self‑hosting, it always felt right to run my own stack. In practice, it meant I shipped fewer posts and more tweaks.
