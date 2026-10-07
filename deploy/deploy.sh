@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 # Deploy a blog to Fern's nginx (moved from Arctic 2026-09-29). Idempotent: re-run after any build.
 #
-#   deploy/deploy.sh ai.jpain.io            # push the built site + nginx config
-#   deploy/deploy.sh ai.jpain.io --tls      # also get the Let's Encrypt cert
-#                                           # (only once DNS points at Arctic)
-#   deploy/deploy.sh ai.jpain.io --config   # nginx config only, not the files
-#   deploy/deploy.sh jpain.io [...]         # the same for jpain.io (../../jpain.io/out)
-#   deploy/deploy.sh services               # the Kudos service, the private view
-#                                           # stats, log rotation and the tailnet page
+#   deploy/deploy.sh jpain.io               # push the built site (out/) + nginx config
+#   deploy/deploy.sh jpain.io --tls         # also get the Let's Encrypt cert
+#                                           # (only once DNS points at Fern)
+#   deploy/deploy.sh jpain.io --config      # nginx config only, not the files
+#   deploy/deploy.sh ai.jpain.io            # the old AI blog's name: redirects only,
+#                                           # so always config only
+#   deploy/deploy.sh services               # the private view stats, log rotation
+#                                           # and the tailnet page
 #
 # Modelled on ops/neverknown/deploy.sh. nginx, certbot, the ACME webroot, the
 # certbot reload hook and ufw 80/443 already exist on Arctic (ops/filehost).
@@ -29,10 +30,10 @@ DOMAIN="${1:-}"
 MODE="${2:-}"
 
 case "$DOMAIN" in
-  ai.jpain.io) OUT="$BLOG/out"; NAMES=(ai.jpain.io) ;;
-  jpain.io)    OUT="$(dirname "$BLOG")/jpain.io/out"; NAMES=(jpain.io www.jpain.io) ;;
+  ai.jpain.io) OUT=; NAMES=(ai.jpain.io); [[ "$MODE" == "--tls" ]] || MODE=--config ;;
+  jpain.io)    OUT="$BLOG/out"; NAMES=(jpain.io www.jpain.io) ;;
   services)    exec "$HERE/services.sh" ;;
-  *) echo "usage: $0 ai.jpain.io|jpain.io [--tls|--config]  or  $0 services" >&2; exit 2 ;;
+  *) echo "usage: $0 jpain.io|ai.jpain.io [--tls|--config]  or  $0 services" >&2; exit 2 ;;
 esac
 CONF="$HERE/nginx-${DOMAIN}.conf"
 

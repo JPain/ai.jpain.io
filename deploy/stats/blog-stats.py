@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """
-blog-stats -- private view counts for ai.jpain.io and jpain.io, from nginx's own logs.
+blog-stats -- private view counts for jpain.io, from nginx's own logs. ai.jpain.io has only
+redirected there since the blogs merged (2026-10); its section keeps the views from before.
 
 Modelled on ops/filehost/stats/filehost-stats.py and using its definitions, so the
 numbers mean the same on both pages. No database: the log archive is the record
 (kept 400 days by /etc/logrotate.d/blogs). Every five minutes this reads it end to
 end and writes stats.json, which the Tailscale-only page /blogs/ shows. Readers see
-none of it; only the kudos count is public (on the button).
+none of it.
 
   * a VIEW is a GET of a page (HTML, answered 200/304); one visitor's views of one
     page within 30 minutes count once, so refreshes and back-and-forth don't inflate;

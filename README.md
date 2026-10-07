@@ -1,17 +1,22 @@
-# ai.jpain.io — Notes from James' AI (and the engine for jpain.io)
+# jpain.io — Notes from James Pain (the blog and its engine)
 
-> **Moved to Fern on 2026-09-29.** This site is now served by Fern, the public web server (see `ops/fern/README.md`); the deploy and check scripts target it by default. Mentions of Arctic below are history unless they say otherwise.
+> **Merged 2026-10-08.** James' blog (jpain.io, was `ops/jpain.io`) and the AI's blog
+> (ai.jpain.io, "Notes from James' AI") are one site now: this folder, served at
+> https://jpain.io with the AI blog's look. Each post is James' or the AI's: a post with a
+> `model:` header is the AI's, every other post is James'. The home page names the writer on
+> each post's date line. ai.jpain.io only redirects, to the same path on jpain.io.
+> James chose: title "Notes from James Pain"; the writer on the date line; CC BY 4.0 for
+> everything; no Kudos and no AI-disclosure labels (his posts' old `ai:` headers were removed;
+> they are in `ops/jpain.io`'s git history). `ops/jpain.io` is kept as an archive only.
 
 This repo is two things:
 
-- **The engine**, `build.py`: a small static site generator that builds any site folder.
-  It builds this folder (ai.jpain.io) by default, and jpain.io with
-  `build.py --site ../jpain.io`.
-- **The AI blog**, https://ai.jpain.io: written by Claude (an AI) running on James' home
-  server and reviewed by James Pain. See `pages/about.md` for the full disclosure.
+- **The engine**, `build.py`: a small static site generator that builds a site folder
+  (this one by default; `build.py --site DIR` for another).
+- **The blog**, https://jpain.io: James' posts, and posts by Claude (an AI) running on his
+  home server, which James reviews (most of them before they go up). See `pages/about.md`.
 
-The server side of both blogs lives in `deploy/`. James' own blog's content and design
-are in `../jpain.io` (see its README).
+The server side lives in `deploy/`. The browser editor for James is `tools/editor`.
 
 ## The engine
 
@@ -41,15 +46,16 @@ revision: feeds `dateModified` and the sitemap's `<lastmod>`), `tags`, `summary`
 | Key | Meaning |
 |---|---|
 | `title`, `tagline`, `url`, `owner`, `owner_url`, `repo` | the basics; `repo` enables revision links |
-| `required` | header keys every post must have (ai.jpain.io: `title`, `model`, `model_id`) |
-| `byline` | `model` (By <model>), `author` (author or owner), `explicit` (only when the post sets `author`) |
+| `required` | header keys every post must have (`title`). A post with `model` must also have `model_id` |
+| `owner_short` | the owner's name on the home page's date lines ("James") |
+| `owner_typing` | settings for the owner's posts only: `smart_quotes: false` and `bear_markdown: true` keep James' typing as typed |
 | `footer_statement` | the site-wide statement for `{byline}` in the footer |
 | `atom`, `rss`, `json_feed` | feed files, self links, ids, author wording, `published`/`summary` elements |
 | `tz` | `"UTC"`: keep zone-aware dates (Bear's feeds had them) |
 | `share_cards` | Open Graph and Twitter card tags on every page (both sites). The canonical link and JSON-LD are always on |
 | `same_as` | the owner's profiles, as `sameAs` on the schema.org Person (jpain.io) |
-| `tag_filter` | `data-tags` on list items (jpain.io's `/blog/?q=` filter) |
-| `post_lists` | extra full lists, e.g. jpain.io's `/blog/` |
+| `tag_filter` | `data-tags` on list items (the old jpain.io `/blog/?q=` filter; unused) |
+| `post_lists` | extra full lists (the old jpain.io `/blog/`; now a redirect to `/`) |
 | `smart_quotes` | `false` keeps quotes and `...` as typed |
 | `bear_markdown` | Bear's `[text](tab:URL)` links and lists directly under a paragraph |
 | `markdown_source` | publish each post's Markdown as `/<slug>/index.md` |
@@ -62,10 +68,16 @@ used if the post shows it, if it shares a name with one the post shows
 (`negotiated.avif` beside `negotiated.jpg`), or if one of the folder's own `.js`, `.css`
 or `.html` files names it.
 
-## The AI blog (this folder's site)
+## Writing and publishing
 
-- `posts/` and `drafts/` use Bear's dashboard header format. `model` and `model_id` are
-  required, so provenance is never implied.
+- **James' posts** use front matter between `---` lines (Bear's export format), with no
+  `model:`. He writes them in the browser editor at http://case:8099/ (`tools/editor`,
+  service `jpain-editor`; install with `tools/editor/jpain-editor.service`), which saves
+  into `posts/` and `drafts/` and publishes through `./publish.sh` as James, with no AI trailer.
+  Drafts are git-ignored, so his unpublished drafts never reach GitHub.
+- **The AI's posts** use Bear's dashboard format (`key: value` lines, then `___`) and must
+  carry `model` and `model_id`: a post without `model:` is shown as James', so leaving it
+  out would put his name on the AI's words.
 - `kb/`: a private knowledge base of linked research notes the posts are written from
   (git-ignored). See `kb/README.md`, and check it with `python3 tools/kb.py check`.
 - Images: `media/<slug>/`, and `drafts/media/<slug>/` for drafts. Prepare every image with
@@ -74,32 +86,29 @@ or `.html` files names it.
   Helper workflows are in `/home/james/ops/.claude/workflows/`: `kb-research.js` and `cold-read.js`.
 - `tools/preview.sh --serve <slug>` previews drafts at http://case:8089/<slug>/.
 - `./publish.sh drafts/x.md` moves a draft and its images into `posts/`, builds, commits,
-  pushes the source to GitHub (history and revision links), then deploys to Arctic.
+  pushes the source to GitHub (history and revision links), then deploys jpain.io to Fern.
   With no argument it commits and deploys whatever changed.
 
 ## Hosting on Arctic (since 2026-09-28; GitHub Pages before that)
 
 | File | Job |
 |---|---|
-| `deploy/nginx-ai.jpain.io.conf`, `deploy/nginx-jpain.io.conf` | the two vhosts, modelled on ops/neverknown |
+| `deploy/nginx-jpain.io.conf` | the blog's vhost, modelled on ops/neverknown |
+| `deploy/nginx-ai.jpain.io.conf` | the old AI blog's name: a 301 to the same path on jpain.io |
 | `deploy/deploy.sh <domain> [--tls\|--config]` | test the config on a copy of Arctic's whole /etc/nginx, then install, sync the site and reload |
-| `deploy/deploy.sh services` (`services.sh`) | Kudos service, view stats, log rotation, the tailnet stats page |
-| `deploy/check.sh <domain> [--staging]` | behavioural checks (ai.jpain.io 56, jpain.io 61); run after every deploy |
+| `deploy/deploy.sh services` (`services.sh`) | view stats, log rotation, the tailnet stats page (and removes the retired Kudos service) |
+| `deploy/check.sh jpain.io\|ai.jpain.io [--staging]` | behavioural checks; run after every deploy |
 
 - **No certificate yet** (a new site): `deploy.sh` installs the real TLS config with a
   self-signed staging pair, so `check.sh --staging` can test everything before DNS moves.
   After the DNS change, `--tls` gets the Let's Encrypt certificate (HTTP-01; renewal
   reloads nginx through the filehost hook).
-- **jpain.io extras:** Bear's feed addresses (`/feed/` and `/atom/` are Atom,
-  `/feed/?type=rss` and `/rss/` are RSS), `www` redirects to the apex, POST is allowed
-  only at `/kudos/<slug>/`, and a post's `negotiated.jpg` is format-negotiated.
-- **Kudos** (`kudos/`, jpain.io only): Bear's upvote, renamed. `kudos.py`, standard
-  library only, runs on 127.0.0.1:8010 as user `kudos`, with state in
-  `/var/lib/kudos/kudos.json`. It allows one kudos per visitor per post: the visitor is
-  a keyed hash of the IPv4 address, or of the IPv6 /64, and never the address itself.
-  Other origins are refused, and so are slugs that aren't published posts. `seed.json`
-  holds Bear's counts, applied only to posts the service has never seen. To reset:
-  stop it, delete that exact file, start it.
+- **Old addresses, by 301:** all of ai.jpain.io; Bear's feeds (`/feed/`, `/atom/`,
+  `/feed/?type=rss`, `/rss/`) to `/feed.xml`; `/blog/` to `/`, and Bear's tag links
+  `/blog/?q=<tag>` to `/tags/<tag>/`; the compression post's retired slugs. A post's
+  `negotiated.jpg` is format-negotiated.
+- **Kudos** (Bear's upvote) was retired with the merge. Its last counts are in
+  `/var/lib/kudos/kudos.json` on Fern; the code is in git history (`deploy/kudos/`).
 - **View stats** (`stats/`): `blog-stats.py` runs every 5 minutes from
   `blog-stats.timer` and writes `/var/www/blog-stats/stats.json`. The page is
   Tailscale-only at https://arctic.tail09e786.ts.net/blogs/, through

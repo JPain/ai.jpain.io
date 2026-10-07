@@ -1,0 +1,16 @@
+# jpain.io editor on Case: http://case:8099/ (tailnet and localhost only; server.py refuses the rest).
+# Install: sudo install -m644 jpain-editor.service /etc/systemd/system/ && sudo systemctl enable --now jpain-editor
+[Unit]
+Description=jpain.io editor (tailnet only)
+After=network-online.target tailscaled.service
+Wants=network-online.target
+
+[Service]
+User=james
+WorkingDirectory=/home/james/ops/blog
+ExecStart=/mnt/work/venvs/blog/bin/python /home/james/ops/blog/tools/editor/server.py --port 8099
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

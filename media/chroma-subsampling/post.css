@@ -1,0 +1,33 @@
+/* This post's own styles, moved from jpain.io's old site-wide stylesheet when the blogs merged
+   (2026-10). The names the demos' stylesheets use, mapped onto this site's colours and fonts. */
+:root { --font-mono: var(--mono); --font-body: var(--sans); --panel: var(--card); --accent-fg: #fff; --radius: 6px; }
+@media (prefers-color-scheme: dark) { :root { --accent-fg: var(--bg); } }
+
+iframe.demo { display: block; width: 100%; height: 420px; border: 0; margin: 1.5rem 0 .5rem; }
+.demo-caption { color: var(--muted); font-size: .88rem; line-height: 1.5; margin: 0 0 1.8rem; }
+figure.demo-format img { margin: 0 auto; }
+.format-sizes { width: auto; margin: .6rem 0 0; font-family: var(--mono); font-size: .8rem; }
+.format-sizes td, .format-sizes th { padding: .2rem .9rem .2rem 0; border: 0; }
+.format-sizes tr.got td { color: var(--accent); font-weight: 600; }
+.format-sizes tr.got td:first-child::before { content: "→ "; }
+/* Figures built from real images: a grid of panels, each with an HTML label, and one
+   caption. .pixel enlarges small crops with sharp pixels; .hold panels swap to their
+   comparison image while held (post.js). .keep keeps the columns on phones, for captions
+   that say "left" and "right". */
+figure.panels { display: grid; gap: .9rem .7rem; margin: 1.8rem 0; align-items: start; }
+figure.panels.cols-2 { grid-template-columns: repeat(2, 1fr); }
+figure.panels.cols-3 { grid-template-columns: repeat(3, 1fr); }
+figure.panels > figcaption { grid-column: 1 / -1; margin-top: -.2rem; }
+.panel { margin: 0; }
+.e-content .panel img { display: block; width: 100%; height: auto; margin: 0; border-radius: 2px; }
+figure.pixel .panel img { image-rendering: pixelated; }
+.panel-label { font-size: .78rem; line-height: 1.45; color: var(--muted); margin: .35rem 0 0; }
+.panel-label b { color: var(--fg); font-weight: 600; }
+.panel.hold { cursor: pointer; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.panel.hold img { outline: 1px solid var(--rule); }
+.panel.hold.holding img { outline: 2px solid var(--accent); }
+.hold-hint { display: block; color: var(--accent); font-size: .72rem; }
+@media (max-width: 40rem) {
+  figure.panels.cols-3:not(.keep) { grid-template-columns: repeat(2, 1fr); }
+  figure.panels.cols-2:not(.keep) { grid-template-columns: 1fr; }
+  figure.panels.keep { gap: .6rem .4rem; }

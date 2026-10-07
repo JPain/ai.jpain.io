@@ -1,5 +1,5 @@
-// Private blog stats page (Tailscale only). Reads stats.json (blog-stats.timer) and
-// kudos/kudos.json (the kudos service). One number per post, the rest on hover.
+// Private blog stats page (Tailscale only). Reads stats.json (blog-stats.timer).
+// One number per post, the rest on hover.
 const SVG = "http://www.w3.org/2000/svg";
 const el = (tag, attrs = {}, text) => {
   const e = tag.startsWith("svg:") ? document.createElementNS(SVG, tag.slice(4)) : document.createElement(tag);
@@ -24,10 +24,7 @@ const ago = (iso) => {
   return m < 60 ? `${m} min ago` : m < 2880 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} days ago`;
 };
 (async () => {
-  const [stats, kudos] = await Promise.all([
-    fetch("stats.json", { cache: "no-store" }).then((r) => r.json()),
-    fetch("kudos/kudos.json", { cache: "no-store" }).then((r) => (r.ok ? r.json() : {})).catch(() => ({})),
-  ]);
+  const stats = await fetch("stats.json", { cache: "no-store" }).then((r) => r.json());
   document.getElementById("generated").textContent = `Updated ${ago(stats.generated)} (${new Date(stats.generated).toLocaleString("en-GB")})`;
   const main = document.getElementById("sites");
   for (const [site, s] of Object.entries(stats.sites)) {
@@ -38,10 +35,8 @@ const ago = (iso) => {
     main.append(el("p", { class: "summary" },
       `${d7} views in 7 days, ${d30} in 30 · ${s.feed_readers} feed reader${s.feed_readers === 1 ? "" : "s"}${services ? ` (${services})` : ""} · daily views, last 90 days:`));
     main.append(bars(s.daily, "chart", 900, 70));
-    const hasKudos = site === "jpain.io";
     const t = el("table"), head = el("tr");
     head.append(el("th", {}, "Page"), el("th", { class: "num" }, "Views"));
-    if (hasKudos) head.append(el("th", { class: "num" }, "Kudos"));
     head.append(el("th", { class: "hide-narrow" }, "Last 30 days"), el("th", { class: "hide-narrow" }, "From"));
     t.append(head);
     for (const p of s.pages) {
@@ -49,10 +44,6 @@ const ago = (iso) => {
       name.append(el("a", { href: `https://${site}${p.path}` }, p.title || p.path));
       const v = el("td", { class: "num", title: `visitors: ${p.visitors}\nyou: ${p.you}\nbots: ${p.bots}\nlast view: ${ago(p.last)}` }, p.views.toLocaleString("en-GB"));
       tr.append(name, v);
-      if (hasKudos) {
-        const slug = p.path.replaceAll("/", "");
-        tr.append(el("td", { class: "num", title: "public count on the post" }, slug && kudos[slug] !== undefined ? kudos[slug].toLocaleString("en-GB") : ""));
-      }
       const sp = el("td", { class: "hide-narrow" }); sp.append(bars(p.daily, "spark", 120, 24));
       tr.append(sp, el("td", { class: "ref hide-narrow" }, p.referrers.map(([h, n]) => `${h} ${n}`).join(", ")));
       t.append(tr);

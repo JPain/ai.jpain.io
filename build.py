@@ -25,9 +25,9 @@ front matter between `---` lines, as in Bear's export. Keys used: title (require
 (defaults from the filename), published_date (YYYY-MM-DD, YYYY-MM-DD HH:MM or ISO 8601 with a
 zone; defaults to now), tags (comma-separated), summary or meta_description (one line for the
 index, feed and description meta), meta_image (share image; defaults to the post's first image),
-updated (date of a real revision: dateModified and sitemap lastmod), author (byline override), ai, ai_agent, ai_note and ai_part (AI disclosure, levels in site.json "ai_levels"),
-publish (false = not built), promoted (URL of a rewritten version on jpain.io), model and
-model_id (provenance; required on ai.jpain.io). Everything else is ignored.
+updated (date of a real revision: dateModified and sitemap lastmod), author (byline override),
+publish (false = not built), model and model_id (a post that names a model was written by
+that AI, and says so; every other post is the owner's). Everything else is ignored.
 """
 import datetime as dt
 import email.utils
@@ -211,19 +211,10 @@ def parse(path):
     for k in SITE["required"]:
         if not meta.get(k):
             sys.exit(f"{path}: missing header key '{k}' (required by {ROOT.name}/site.json)")
-    levels = SITE.get("ai_levels", {})
-    if meta.get("ai") and meta["ai"].strip().lower() not in levels:
-        sys.exit(f"{path}: ai: must be one of {', '.join(levels) or '(none: site.json has no ai_levels)'}")
-    # ai_part: may repeat, one line per part: "Part | who | detail", who from "ai_part_levels".
-    ai_parts = []
-    for line in head.splitlines():
-        k, _, v = line.partition(":")
-        if k.strip().lower() == "ai_part":
-            bits = [b.strip() for b in v.split("|", 2)]
-            who = SITE.get("ai_part_levels", {})
-            if len(bits) != 3 or bits[1].lower() not in who:
-                sys.exit(f"{path}: ai_part: needs 'Part | who | detail', who one of {', '.join(who) or '(none in site.json)'}")
-            ai_parts.append((bits[0], bits[1].lower(), bits[2]))
+    # Who wrote it: a post naming a model is the AI's, and it must name the exact model id too.
+    # Every other post is the owner's.
+    if meta.get("model") and not meta.get("model_id"):
+        sys.exit(f"{path}: model: needs model_id: as well")
     slug = meta.get("link") or meta.get("slug") or path.stem
     if not re.fullmatch(r"[a-z0-9-]+", slug):
         sys.exit(f"{path}: bad slug {slug!r}")
@@ -236,13 +227,14 @@ def parse(path):
     updated = parse_date(meta.get("updated", "")) if meta.get("updated") else None
     updated = max(when, site_date(updated)) if updated else when
     tags = [t.strip() for t in meta.get("tags", "").split(",") if t.strip()]
-    # "smart_quotes": false keeps quotes and ... exactly as typed (jpain.io, as on Bear).
-    exts = [e for e in MD_EXTENSIONS if SITE.get("smart_quotes", True) or e != "smarty"]
+    # The owner's posts can be typed differently (site.json "owner_typing"): jpain.io keeps James'
+    # quotes and ... exactly as typed, and reads Bear's Markdown, as on Bear.
+    typing = SITE if meta.get("model") else {**SITE, **SITE.get("owner_typing", {})}
+    exts = [e for e in MD_EXTENSIONS if typing.get("smart_quotes", True) or e != "smarty"]
     md = markdown.Markdown(extensions=exts, extension_configs=MD_CONFIG)
     words = len(re.findall(r"\S+", body))
     folder = media_dir(path, slug)
-    raw_html = md.convert(bear_markdown(body) if SITE.get("bear_markdown") else body)
-    raw_html = ai_inline(raw_html, path)
+    raw_html = md.convert(bear_markdown(body) if typing.get("bear_markdown") else body)
     return {
         "media": folder,
         "images": images_in(raw_html),
@@ -261,19 +253,14 @@ def parse(path):
         "description": meta.get("meta_description") or meta.get("summary", ""),
         "image": meta.get("meta_image", ""),
         "author": meta.get("author", ""),
-        "ai": meta.get("ai", "").strip().lower(),
-        "ai_note": meta.get("ai_note", ""),
-        "ai_agent": meta.get("ai_agent", ""),
-        "ai_parts": ai_parts,
         "publish": meta.get("publish", "true").lower() != "false",
-        "promoted": meta.get("promoted", ""),
         "model": meta.get("model", ""),
         "model_id": meta.get("model_id", ""),
         "tool": meta.get("tool", "Claude Code"),
         # reviewed: none marks a post published without the owner's review (standing permission).
         "reviewed": "" if meta.get("reviewed", SITE["owner"]).strip().lower() in ("none", "no") else meta.get("reviewed", SITE["owner"]),
         "rfcs": [c.strip() for c in meta.get("rfcs", "").split(",") if c.strip().isdigit()],
-        "html": ai_overlay(figures(raw_html, folder)),
+        "html": figures(raw_html, folder),
         "source": path,
     }
 
@@ -320,118 +307,28 @@ def tag_links(tags):
     return ", ".join(f'<a href="/tags/{esc(tag_slug(t))}/">{esc(t)}</a>' for t in tags)
 
 
+def by_ai(p):
+    """A post written by an AI names its model in the header."""
+    return bool(p["model"])
+
+
 def author_name(p):
-    """Who wrote it, as plain text: the model on ai.jpain.io, the post's author or the owner elsewhere."""
-    if SITE["byline"] == "model":
-        return p["model"]
-    return p["author"] or SITE["owner"]
+    """Who wrote it, as plain text: the model for the AI's posts, else the post's author or the owner."""
+    return p["model"] if by_ai(p) else (p["author"] or SITE["owner"])
 
 
 def byline(p):
-    # "byline": "explicit" (jpain.io) shows one only when the post names an author, e.g.
-    # "James Pain, with Claude"; James' other posts have none, as on Bear.
-    if SITE["byline"] == "explicit" and not p["author"]:
-        return ""
     return f'<span class="author p-author">By {esc(author_name(p))}</span>'
 
 
+def writer_mark(p):
+    """The index's who-wrote-it, on the date line: "AI · <model>" or the owner's short name."""
+    if by_ai(p):
+        return f' · <span class="by-ai">AI · {esc(p["model"])}</span>'
+    return f' · <span class="by-owner">{esc(SITE.get("owner_short", SITE["owner"]))}</span>'
+
+
 QUOTES = []
-
-
-# The label's icon: one face, human on the left and robot on the right, split where the level
-# says. 20 = all human, 0 = all robot. Each half is a nested <svg>, which clips its own
-# drawing, so no clipPath ids are needed.
-AI_FACE_SPLIT = {"human": 20, "researched": 15, "assisted": 10, "reviewed": 5, "unreviewed": 0, "ai": 0, "generated": 0}
-FACE_HUMAN = ('<circle cx="10" cy="10.5" r="7.5"/><path d="M3.4 8.6Q5.2 3.2 10 3.1Q14.8 3.2 16.6 8.6"/>'
-              '<circle class="dot" cx="7.3" cy="10" r="1.05"/><circle class="dot" cx="12.7" cy="10" r="1.05"/>'
-              '<path d="M7 13.4Q10 16 13 13.4"/>')
-FACE_ROBOT = ('<rect x="2.6" y="4.6" width="14.8" height="13" rx="2.6"/><path d="M10 4.6V2.2"/>'
-              '<circle class="dot" cx="10" cy="1.7" r="1.1"/><rect class="dot" x="6" y="8.6" width="2.7" height="2.7" rx=".4"/>'
-              '<rect class="dot" x="11.3" y="8.6" width="2.7" height="2.7" rx=".4"/><path d="M7 14.2H13"/>')
-WRENCH = '<path d="M15.2 3.3a4.3 4.3 0 0 0-5.6 5.6L3.3 15.2l1.5 1.5 6.3-6.3a4.3 4.3 0 0 0 5.6-5.6l-2.5 2.5-2-2z"/>'
-
-
-def ai_icon(key):
-    if SITE.get("ai_icon") == "emoji":
-        return ai_emoji(key)
-    if key == "tools":
-        return f'<svg class="ai-icon" viewBox="0 0 20 20" aria-hidden="true"><g class="ai-tool">{WRENCH}</g></svg>'
-    s = AI_FACE_SPLIT.get(key, 10)
-    out = '<svg class="ai-icon" viewBox="0 0 20 20" aria-hidden="true">'
-    if s:
-        out += f'<svg width="{s}" height="20" viewBox="0 0 {s} 20"><g class="ai-human">{FACE_HUMAN}</g></svg>'
-    if s < 20:
-        out += f'<svg x="{s}" width="{20 - s}" height="20" viewBox="{s} 0 {20 - s} 20"><g class="ai-robot">{FACE_ROBOT}</g></svg>'
-    if 0 < s < 20:
-        out += f'<path class="ai-split" d="M{s} 0V20"/>'
-    return out + "</svg>"
-
-
-def ai_emoji(key):
-    """The same split as ai_icon, with emoji: the human emoji (site.json "ai_human_emoji", default 🙂) on the left, 🤖 on the right, each clipped by a
-    CSS class (ai-h-<human %>), since the CSP bans inline styles. site.json "ai_icon": "emoji"."""
-    if key == "tools":
-        return '<span class="ai-emoji" aria-hidden="true"><span>🔧</span></span>'
-    human = AI_FACE_SPLIT.get(key, 10) * 5
-    me = SITE.get("ai_human_emoji", "🙂")
-    if human in (0, 100):
-        return f'<span class="ai-emoji" aria-hidden="true"><span>{me if human else "🤖"}</span></span>'
-    return (f'<span class="ai-emoji ai-h-{human}" aria-hidden="true">'
-            f'<span class="h">{me}</span><span class="r">🤖</span></span>')
-
-
-def ai_panel(key, body, after=""):
-    """A self-contained AI label: the label is the button, and opening it shows `body`,
-    or, when there's nothing more to say, what the level means. `after` goes inside the label, after its text."""
-    lvl = SITE["ai_levels"][key]
-    body = body or f'<p>{esc(lvl["summary"])}</p>'
-    return (f'<summary class="ai-summary" title="{esc(lvl["summary"])}"><span class="ai-label ai-{esc(key)}">'
-            f'{ai_icon(key)}{esc(lvl["label"])}{after}</span></summary><div class="ai-panel">{body}</div>')
-
-
-def ai_disclosure(p):
-    """The post's AI label, under the title. `ai:` picks a level from site.json "ai_levels" and
-    `ai_agent:` names the AI inside it, like a byline. Opening it shows the `ai_part:` breakdown
-    (or, without one, the level's meaning and any `ai_note:`)."""
-    if not p.get("ai"):
-        return ""
-    agent = (f'<span class="ai-sep" aria-hidden="true">|</span><span class="ai-agent">{esc(p["ai_agent"])}</span>'
-             if p.get("ai_agent") else "")
-    if p.get("ai_parts"):
-        who = SITE["ai_part_levels"]
-        rows = "".join(f'<dt>{esc(part)}</dt><dd><span class="ai-label ai-{esc(k)}">{ai_icon(k)}{esc(who[k])}</span> {esc(detail)}</dd>'
-                       for part, k, detail in p["ai_parts"])
-        body = f'<dl>{rows}</dl>'
-    else:
-        lvl = SITE["ai_levels"][p["ai"]]
-        body = f'<p>{esc(lvl["summary"])}</p>' + (f'<p>{esc(p["ai_note"])}</p>' if p.get("ai_note") else "")
-    return f'<details class="ai-disclosure">{ai_panel(p["ai"], body, agent)}</details>'
-
-
-AI_INLINE = re.compile(r"<p>\[ai:\s*([a-z]+)\s*(?:\|\s*(.*?))?\]</p>")
-
-
-def ai_inline(html_text, path):
-    """A line `[ai: level]` or `[ai: level | note]` in a post labels the block after it (a code
-    block, table, figure or paragraph), for marking in place what AI made, and especially
-    what hasn't been reviewed. It's a small plain caption, not a pill, so it never reads as a
-    second post label: the icon, then the note (e.g. "AI-generated image") or the level's name."""
-    levels = SITE.get("ai_levels", {})
-
-    def label(m):
-        key, note = m.group(1), m.group(2) or ""
-        if key not in levels:
-            sys.exit(f"{path}: [ai: {key}] must be one of {', '.join(levels) or '(none in site.json)'}")
-        return f'<p class="ai-inline">{ai_icon(key)}<span>{note or esc(levels[key]["label"])}</span></p>'
-    return AI_INLINE.sub(label, html_text)
-
-
-AI_OVER = re.compile(r'<p class="ai-inline">(.*?)</p>\s*<figure>')
-
-
-def ai_overlay(html_text):
-    """An inline AI caption right before an image moves onto the image, as a badge in its corner."""
-    return AI_OVER.sub(r'<figure class="ai-over"><span class="ai-badge">\1</span>', html_text)
 
 
 def quote_for(key):
@@ -516,7 +413,7 @@ def post_card(p):
         OG_SIZE[f'{SITE["url"]}/{p["slug"]}/{OG_JPG}'] = img.size
     if p["image"] or not SITE.get("card"):
         return
-    foot = SITE["card"].get("byline", "").format(model=p["model"] or "", author=author_name(p),
+    foot = SITE["card"].get("byline" if by_ai(p) else "owner_byline", "").format(model=p["model"] or "", author=author_name(p),
                                                   date=p["date"].strftime("%-d %B %Y"))
     write_card(f'{p["slug"]}/{CARD}', p["title"], foot)
 
@@ -543,7 +440,7 @@ def head_meta(path, title, description, og_type="website", image=""):
     return out
 
 
-def page_shell(base, title, body, description="", meta_extra="", key="", path=None):
+def page_shell(base, title, body, description="", meta_extra="", key="", path=None, author=""):
     full = SITE["title"] if title == SITE["title"] else f"{title} · {SITE['title']}"
     if path is not None:
         meta_extra = head_meta(path, SITE["title"] if title == SITE["title"] else title,
@@ -555,6 +452,7 @@ def page_shell(base, title, body, description="", meta_extra="", key="", path=No
         site_title=esc(SITE["title"]),
         tagline=esc(SITE["tagline"]),
         site_url=SITE["url"],
+        page_author=esc(author or SITE["owner"]),
         owner=esc(SITE["owner"]),
         owner_url=SITE["owner_url"],
         byline=esc(SITE["footer_statement"]),
@@ -566,13 +464,16 @@ def page_shell(base, title, body, description="", meta_extra="", key="", path=No
     )
 
 
+def page_author(p):
+    """<meta name="author">: the model, with who supervises it, or the owner."""
+    return f'{p["model"]} (an AI model by Anthropic), supervised by {SITE["owner"]}' if by_ai(p) else author_name(p)
+
+
 def post_meta(p):
     """Extra <head> tags for a post: provenance when a model wrote it, canonical, share cards, BlogPosting."""
     url = f'{SITE["url"]}/{p["slug"]}/'
     image = post_image(p)
     out = f'<meta name="ai-model" content="{esc(p["model_id"])}">\n' if p["model_id"] else ""
-    if p.get("ai"):
-        out += f'<meta name="ai-disclosure" content="{esc(p["ai"])}">\n'
     out += head_meta(f'/{p["slug"]}/', p["title"], p["description"], "article", image)
     if SITE.get("share_cards"):
         out += f'\n<meta property="article:published_time" content="{iso(p["date"])}">'
@@ -587,15 +488,13 @@ def post_meta(p):
         ld["keywords"] = p["tags"]
     if image:
         ld["image"] = image
-    if SITE["byline"] == "model":
-        # ai.jpain.io: the model wrote it; James is the editor only when he reviewed it.
+    if by_ai(p):
+        # The model wrote it; James is the editor only when he reviewed it.
         ld["author"] = model_ld(p)
         if p["reviewed"]:
             ld["editor"] = owner_ld()
     else:
         ld["author"] = owner_ld()
-        if p["model_id"]:
-            ld["contributor"] = model_ld(p)
     return out + json_ld(ld)
 
 
@@ -617,6 +516,8 @@ def write(rel, content, image_bytes=0):
         if image_bytes:
             weight += f" and {image_bytes / 1024:.0f} KB of images"
         content = content.replace("{page_kb} KB of HTML", weight).replace("{page_kb}", f"{kb:.1f}")
+        if "<script src=" in content:   # a post with a live demo loads the demo's own script
+            content = content.replace(" with no JavaScript,", ", with JavaScript only for this post's demos,")
     p.write_text(content)
 
 
@@ -642,10 +543,7 @@ def build():
     # posts
     for p in posts:
         promoted = ""
-        if p["promoted"]:
-            promoted = (f'<p class="promoted">James rewrote this one for his own blog: '
-                        f'<a href="{esc(p["promoted"])}">{esc(p["promoted"])}</a></p>')
-        if not p["reviewed"] and SITE.get("unreviewed_note"):
+        if by_ai(p) and not p["reviewed"] and SITE.get("unreviewed_note"):
             promoted += f'<p class="promoted">{esc(SITE["unreviewed_note"])}</p>'
         body = render(
             post_t,
@@ -655,7 +553,6 @@ def build():
             slug=p["slug"],
             tags=tag_links(p["tags"]),
             author=byline(p),
-            ai=ai_disclosure(p),
             promoted=promoted,
             content=p["html"] + rfc_box(p["rfcs"]),
         )
@@ -671,7 +568,7 @@ def build():
         if p["media"].is_dir():
             shutil.copytree(p["media"], OUT / p["slug"], dirs_exist_ok=True)
         post_card(p)
-        write(f"{p['slug']}/index.html", page_shell(base, p["title"], body, p["description"], post_meta(p), key=p["slug"]), img_bytes)
+        write(f"{p['slug']}/index.html", page_shell(base, p["title"], body, p["description"], post_meta(p), key=p["slug"], author=page_author(p)), img_bytes)
         if SITE.get("markdown_source"):
             write(f"{p['slug']}/index.md", p["raw"])
 
@@ -690,7 +587,7 @@ def build():
     def listing(items, heading="", template=index_t):
         rows = "".join(
             ("<li>" if not SITE.get("tag_filter") else f'<li data-tags="{esc(" ".join(tag_slug(t) for t in p["tags"]))}">')
-            + f'<time datetime="{p["date"].date().isoformat()}">{p["date"].strftime("%-d %b %Y")}</time> '
+            + f'<span class="when"><time datetime="{p["date"].date().isoformat()}">{p["date"].strftime("%-d %b %Y")}</time>{writer_mark(p)}</span> '
             f'<a href="/{p["slug"]}/">{esc(p["title"])}</a>'
             + (f'<br><span class="summary">{esc(p["summary"])}</span>' if p["summary"] else "")
             + "</li>"
@@ -728,7 +625,7 @@ def build():
         pg = parse(path)
         body = (f'<article><h1>{esc(pg["title"])}</h1><p class="meta">{byline(pg)}</p>'
                 f'{pg["html"]}</article>')
-        write(f"{pg['slug']}/index.html", page_shell(base, pg["title"], body, pg["summary"], path=f"/{pg['slug']}/"))
+        write(f"{pg['slug']}/index.html", page_shell(base, pg["title"], body, pg["summary"], path=f"/{pg['slug']}/", author=page_author(pg)))
         page_dates[pg["slug"]] = git_date(path)
 
     feeds(posts)
@@ -836,7 +733,7 @@ def feeds(posts):
                 "tags": p["tags"],
                 "authors": [{"name": f"{p['model']} ({p['model_id']})" if p["model_id"] else author_name(p)}],
             }
-            if jf.get("provenance"):
+            if jf.get("provenance") and by_ai(p):
                 it["_provenance"] = {"model": p["model"], "model_id": p["model_id"], "tool": p["tool"],
                                      "reviewed_by": p["reviewed"] or None, "source_markdown": f"{SITE['url']}/{p['slug']}/index.md",
                                      "revision": p["git"] and p["git"]["hash"], "words": p["words"]}

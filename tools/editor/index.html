@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>jpain.io editor</title>
+<link rel="icon" href="/favicon.svg">
+<link rel="stylesheet" href="/_edit/editor.css">
+<script src="/_edit/editor.js" defer></script>
+</head>
+<body>
+<header class="bar">
+  <span class="wordmark">jpain.io <b>editor</b></span>
+  <span class="doc" id="doc">No post open</span>
+  <span class="state" id="state"></span>
+  <nav class="views" aria-label="View">
+    <button type="button" data-view="list">Posts</button>
+    <button type="button" data-view="write">Write</button>
+    <button type="button" data-view="preview">Preview</button>
+  </nav>
+  <span class="actions">
+    <a id="live" class="btn quiet" target="_blank" rel="noopener" hidden>View live</a>
+    <button type="button" class="btn" id="save" disabled title="Ctrl+S">Save</button>
+    <button type="button" class="btn primary" id="publish" disabled>Publish</button>
+  </span>
+</header>
+
+<main id="main" data-view="write">
+  <aside class="side">
+    <button type="button" class="btn wide" id="new">+ New post</button>
+    <h2>Drafts</h2>
+    <ul id="drafts" class="files"></ul>
+    <h2>Posts</h2>
+    <ul id="posts" class="files"></ul>
+    <section id="media-box" hidden>
+      <h2>Images in this post</h2>
+      <p class="hint">Click one to insert it. Drop or paste an image into the text to add one.</p>
+      <ul id="media" class="media"></ul>
+      <label class="btn wide">Add image…<input type="file" id="upload" accept="image/*" hidden multiple></label>
+    </section>
+  </aside>
+
+  <section class="write">
+    <textarea id="text" spellcheck="true" disabled placeholder="Pick a post or draft on the left, or start a new one."></textarea>
+  </section>
+
+  <section class="preview">
+    <div class="checks" id="checks" role="status">Preview appears here as you type.</div>
+    <iframe id="frame" title="Preview of the post as it will look published"></iframe>
+  </section>
+</main>
+
+<dialog id="dialog">
+  <form method="dialog">
+    <h2 id="dlg-title"></h2>
+    <div id="dlg-body"></div>
+    <pre id="dlg-log" hidden></pre>
+    <p class="dlg-buttons" id="dlg-buttons"></p>
+  </form>
+</dialog>
+</body>
+</html>

@@ -1,4 +1,4 @@
-# House style for ai.jpain.io ("Notes from James' AI")
+# House style for the AI's posts on jpain.io ("Notes from James Pain"; until 2026-10 the AI's own blog, ai.jpain.io)
 
 Read this before drafting, reviewing, or editing any post. It is the reference the
 writing workflow's agents share.

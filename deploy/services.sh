@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 # Install the blogs' services on Fern (moved from Arctic 2026-09-29). Idempotent; run via `deploy.sh services`.
 #
-#   kudos        the Kudos button's counter for jpain.io (kudos/), 127.0.0.1:8010
 #   blog-stats   private view counts from the nginx logs, every 5 min (stats/)
 #   /blogs/      the Tailscale-only page showing them (stats/web/), served by the
 #                tailnet vhost of ops/filehost through snippets/tailnet-*.conf
 #   logrotate    /var/log/nginx/blogs/*.log kept 400 days (logrotate-blogs)
 #
 # nginx changes are tested against a copy of /etc/nginx before anything is
-# installed, as in deploy.sh. The kudos seed (Bear's counts) applies only to posts
-# the service has never seen, so re-running never resets a count.
+# installed, as in deploy.sh. The Kudos button went when the blogs merged (2026-10): this
+# removes its service if it is still installed, and keeps its last counts in
+# /var/lib/kudos/kudos.json.
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HOST="${SITE_SSH:-james@fern}"
@@ -19,7 +19,7 @@ say() { printf '\033[36m==\033[0m %s\n' "$*"; }
 
 say "copying to $HOST"
 ssh "$HOST" "rm -rf $STAGE && mkdir -p $STAGE"
-rsync -rt "$HERE/kudos" "$HERE/stats" "$HERE/logrotate-blogs" "$HERE/nginx-tailnet-blogs.conf" "$HOST:$STAGE/"
+rsync -rt "$HERE/stats" "$HERE/logrotate-blogs" "$HERE/nginx-tailnet-blogs.conf" "$HOST:$STAGE/"
 scp -q "$TAILNET_CONF" "$HOST:$STAGE/tailnet.conf"
 
 ssh "$HOST" STAGE="$STAGE" 'bash -s' <<'REMOTE'
@@ -38,8 +38,15 @@ sudo ln -sfn "$T/sites-available/fern-tailnet" "$T/sites-enabled/fern-tailnet"
 sudo nginx -t -q -c "$T/nginx.conf" || { echo "nginx -t FAILED; nothing installed" >&2; exit 1; }
 say "nginx changes pass nginx -t"
 
-# Accounts: fixed system users (see kudos.service for why not DynamicUser).
-id kudos >/dev/null 2>&1 || sudo useradd --system --no-create-home --shell /usr/sbin/nologin kudos
+# Kudos is retired: stop it and remove its unit and code, keeping the counts.
+if [ -f /etc/systemd/system/kudos.service ]; then
+  sudo systemctl disable -q --now kudos.service || true
+  sudo rm -f /etc/systemd/system/kudos.service
+  sudo rm -rf /usr/local/lib/kudos /etc/kudos /var/www/blog-stats/kudos
+  say "kudos service removed (counts kept in /var/lib/kudos/kudos.json)"
+fi
+
+# Account: a fixed system user.
 id blog-stats >/dev/null 2>&1 || sudo useradd --system --no-create-home --shell /usr/sbin/nologin --groups adm blog-stats
 
 # Logs and their rotation.
@@ -49,19 +56,15 @@ sudo logrotate --debug /etc/logrotate.d/blogs >/dev/null 2>&1 || { echo "logrota
 
 # The stats page and its data directories.
 sudo install -d -o blog-stats -g blog-stats -m 0755 /var/www/blog-stats
-sudo install -d -o kudos -g kudos -m 0755 /var/www/blog-stats/kudos
 for f in index.html stats.css stats.js; do sudo install -o root -g root -m 0644 "$S/stats/web/$f" /var/www/blog-stats/; done
 
 # Code, seed, units.
-sudo install -D -o root -g root -m 0644 "$S/kudos/kudos.py" /usr/local/lib/kudos/kudos.py
-sudo install -D -o root -g root -m 0644 "$S/kudos/seed.json" /etc/kudos/seed.json
 sudo install -D -o root -g root -m 0644 "$S/stats/blog-stats.py" /usr/local/lib/blog-stats/blog-stats.py
-for u in kudos/kudos.service stats/blog-stats.service stats/blog-stats.timer; do
+for u in stats/blog-stats.service stats/blog-stats.timer; do
   sudo install -o root -g root -m 0644 "$S/$u" /etc/systemd/system/
 done
 sudo systemctl daemon-reload
-sudo systemctl enable -q kudos.service blog-stats.timer
-sudo systemctl restart kudos.service
+sudo systemctl enable -q blog-stats.timer
 sudo systemctl start blog-stats.timer
 sudo systemctl start blog-stats.service
 
@@ -72,6 +75,6 @@ sudo nginx -t -q
 sudo systemctl reload nginx
 rm -rf "$S"
 sleep 1
-say "kudos: $(systemctl is-active kudos) | blog-stats last run: $(systemctl show -p Result --value blog-stats.service) | nginx: $(systemctl is-active nginx)"
+say "blog-stats last run: $(systemctl show -p Result --value blog-stats.service) | nginx: $(systemctl is-active nginx)"
 REMOTE
 say "done"
