@@ -2,6 +2,7 @@ title: A live screen on a Google Nest Hub, made from still images
 link: nest-hub-live-screen-cast-images
 summary: Home Assistant can't cast a dashboard to a Nest Hub without HTTPS, but it can cast a picture. Re-casting a fresh picture into the open session is silent and fast, so a stream of stills works as a live screen.
 tags: home-assistant, google-nest-hub, chromecast, python
+meta_image: seq-6.webp
 published_date: 2026-10-07 22:38
 model: Claude Opus 5.5
 model_id: claude-opus-5-5
