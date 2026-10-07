@@ -43,6 +43,8 @@ import subprocess
 import markdown
 from PIL import Image
 
+import cards
+
 ENGINE = Path(__file__).resolve().parent
 ROOT = ENGINE          # the site folder; set by use_site()
 OUT = ROOT / "out"
@@ -465,22 +467,56 @@ def json_ld(data):
     return f'\n<script type="application/ld+json">{text}</script>'
 
 
+CARD = "og-card.png"   # the generated share card's file name, beside each post and at the site root
+
+
 def post_image(p):
-    """The share image: meta_image if set, otherwise the first image the post shows."""
+    """The share image: meta_image if set, else the generated card (site.json "card"), else the first image."""
     url = f'{SITE["url"]}/{p["slug"]}/'
+    if not p["image"] and SITE.get("card"):
+        return url + CARD
     src = p["image"] or next((i["src"] for i in p["images"] if i.get("src") and "://" not in i["src"]), "")
     return src if "://" in src or not src else url + src
+
+
+def card_text(s):
+    """Card titles get the same curly apostrophes the pages show, unless the site keeps quotes as typed."""
+    return re.sub(r"(?<=\w)'", "\u2019", s) if SITE.get("smart_quotes", True) else s
+
+
+def write_card(rel, title, foot_left="", subtitle=""):
+    cfg = dict(SITE["card"])
+    cfg["brand"] = card_text(cfg.get("brand", SITE["title"]))
+    domain = SITE["url"].split("://", 1)[1]
+    png = cards.render(cfg, ROOT, card_text(title), card_text(foot_left), domain, card_text(subtitle))
+    (OUT / rel).parent.mkdir(parents=True, exist_ok=True)
+    (OUT / rel).write_bytes(png)
+
+
+def post_card(p):
+    """Draw a post's card unless it names its own meta_image."""
+    if p["image"] or not SITE.get("card"):
+        return
+    foot = SITE["card"].get("byline", "").format(model=p["model"] or "", author=author_name(p),
+                                                  date=p["date"].strftime("%-d %B %Y"))
+    write_card(f'{p["slug"]}/{CARD}', p["title"], foot)
 
 
 def head_meta(path, title, description, og_type="website", image=""):
     """Canonical link on every page; Open Graph and Twitter card tags where site.json has share_cards."""
     url = SITE["url"] + path
+    if not image and SITE.get("card"):
+        image = f'{SITE["url"]}/{CARD}'   # the site card, for every page that isn't a post
     out = f'<link rel="canonical" href="{url}">'
     if SITE.get("share_cards"):
         tags = [("og:type", og_type), ("og:title", title), ("og:url", url), ("og:site_name", SITE["title"]),
                 ("og:description", description or SITE["tagline"])]
         if image:
             tags.append(("og:image", image))
+            if image.endswith("/" + CARD):   # a generated card: its size and what it says are known
+                site_card = image == f'{SITE["url"]}/{CARD}'
+                tags += [("og:image:width", str(cards.W)), ("og:image:height", str(cards.H)),
+                         ("og:image:alt", f'{SITE["title"]}: {SITE["tagline"]}' if site_card else title)]
         out += "".join(f'\n<meta property="{k}" content="{esc(v)}">' for k, v in tags)
         out += f'\n<meta name="twitter:card" content="{"summary_large_image" if image else "summary"}">'
     return out
@@ -613,6 +649,7 @@ def build():
             img_bytes += f.stat().st_size
         if p["media"].is_dir():
             shutil.copytree(p["media"], OUT / p["slug"], dirs_exist_ok=True)
+        post_card(p)
         write(f"{p['slug']}/index.html", page_shell(base, p["title"], body, p["summary"], post_meta(p), key=p["slug"]), img_bytes)
         if SITE.get("markdown_source"):
             write(f"{p['slug']}/index.md", p["raw"])
@@ -640,6 +677,8 @@ def build():
         )
         return render(template, heading=heading, posts=rows or "<li>Nothing yet.</li>")
 
+    if SITE.get("card"):
+        write_card(CARD, SITE["title"], subtitle=SITE["tagline"])
     home_t = optional_template("home.html")
     write("index.html", page_shell(base, SITE["title"], listing(posts, template=home_t or index_t),
                                    meta_extra=home_meta(), path="/"))
