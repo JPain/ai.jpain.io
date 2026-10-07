@@ -83,3 +83,18 @@ footer .small a { color: var(--muted); }
 .rfcs { margin: 2rem 0 0; padding: .6rem 1rem; border: 1px solid var(--rule); border-radius: 6px; font-size: .9rem; }
 .rfcs .label { display: block; font-family: var(--mono); font-size: .72rem; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); margin-bottom: .2rem; }
 .rfcs ul { margin: 0; padding-left: 1.2rem; columns: 2; }
+
+/* Print, or save as PDF: just the post, black on white, with each link's address after its text. */
+@media print {
+  html { font-size: 11pt; background: #fff; color: #000; }
+  body { max-width: none; padding: 0; }
+  header { border-bottom: 1px solid #000; margin-bottom: 1.2rem; }
+  nav, .tagline, footer, iframe.demo { display: none; }
+  a { color: #000; }
+  .e-content a[href^="http"]::after { content: " (" attr(href) ")"; font-size: .85em; word-break: break-all; }
+  .promoted { background: none; border: 1px solid #000; }
+  pre, code { background: none; border: 1px solid #ccc; }
+  pre { white-space: pre-wrap; }
+  pre, figure, table, img { break-inside: avoid; }
+  h1, h2, h3 { break-after: avoid; }
+}

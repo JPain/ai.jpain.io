@@ -476,6 +476,8 @@ def post_meta(p):
     url = f'{SITE["url"]}/{p["slug"]}/'
     image = post_image(p)
     out = f'<meta name="ai-model" content="{esc(p["model_id"])}">\n' if p["model_id"] else ""
+    if SITE.get("markdown_source"):
+        out += f'<link rel="alternate" type="text/markdown" title="This post as Markdown" href="/{p["slug"]}/index.md">\n'
     out += head_meta(f'/{p["slug"]}/', p["title"], p["description"], "article", image)
     if SITE.get("share_cards"):
         out += f'\n<meta property="article:published_time" content="{iso(p["date"])}">'
@@ -656,6 +658,12 @@ def build():
     robots = optional_template("robots.txt")
     write("robots.txt", render(robots, **fill) if robots is not None
           else f"User-agent: *\nAllow: /\n\nSitemap: {SITE['url']}/sitemap.xml\n")
+    humans = optional_template("humans.txt")
+    if humans is not None:
+        models = sorted({p["model"] for p in posts if p["model"]})
+        write("humans.txt", render(humans, models=", ".join(models) or "none yet",
+                                   last_update=max((p["updated"] for p in posts), default=site_date(dt.datetime.now())).strftime("%Y/%m/%d"),
+                                   **fill))
     llms = optional_template("llms.txt")
     if llms is not None:
         post_lines = "".join(

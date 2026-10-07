@@ -83,7 +83,7 @@ chk "odd tag link -> /tags/"              "301 /tags/"            "$(loc "https:
 chk "retired slug -> chroma-subsampling"  "301 https://$D/chroma-subsampling/" "$(loc "https://$D/game-screenshot-compression/")"
 chk "kudos is gone"                       "405"                   "$(code -X POST "https://$D/kudos${POST}")"
 chk "format negotiation: AVIF for Chrome" "image/avif"            "$(ctype -H 'Accept: image/avif,image/webp,*/*' -A 'Mozilla/5.0 Chrome/140' "https://$D/chroma-subsampling/negotiated.jpg")"
-PAGES="/about/ /colophon/ /tags/ /llms.txt /robots.txt /sitemap.xml /style.css /favicon.svg /chroma-subsampling/lab/"
+PAGES="/about/ /colophon/ /tags/ /llms.txt /humans.txt /robots.txt /sitemap.xml /style.css /favicon.svg /chroma-subsampling/lab/"
 for p in $PAGES; do
   chk "$p 200"                            "200"                   "$(code "https://$D$p")"
 done
@@ -97,6 +97,9 @@ for u in / "$POST" "$POST$IMG" /no-such-post/; do
   chk "nosniff on $u"                     "nosniff"               "$(hdr x-content-type-options "https://$D$u")"
 done
 chk "X-Served-By: ${SERVED_BY:-fern}"                  "${SERVED_BY:-fern}"                "$(hdr x-served-by "https://$D/")"
+chk "X-Clacks-Overhead"                   "GNU Terry Pratchett"   "$(hdr x-clacks-overhead "https://$D$POST")"
+chk "/teapot is a teapot"                 "418"                   "$(code "https://$D/teapot")"
+chk "post links its Markdown"             "1"                     "$("${C[@]}" "https://$D$POST" | grep -c 'type="text/markdown"')"
 chk "HTTP/2 negotiated"                   "2"                     "$("${C[@]}" -o /dev/null -w '%{http_version}' "https://$D/")"
 chk "HTTP/3 advertised (Alt-Svc)"         'h3=":443"; ma=86400'   "$(hdr alt-svc "https://$D/")"
 chk "HTML cached 10 minutes"              "max-age=600"           "$(hdr cache-control "https://$D/")"
