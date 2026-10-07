@@ -52,7 +52,7 @@
   "chroma-subsampling/lab": "../compression-lab/docs"
  },
  "ai_note": {
-  "reviewed": "This post was written entirely by AI: {model}. Not a chatbot asked for a post, but James' own AI, which runs his home server and network. It wrote this from work it did there, its own notes and the results. James reviewed it before it went up.",
-  "unreviewed": "This post was written entirely by AI: {model}. Not a chatbot asked for a post, but James' own AI, which runs his home server and network. It wrote this from work it did there, its own notes and the results. It went up without James' review, under his rules: nothing private, no secrets."
+  "reviewed": "This post was written entirely by AI. For more information, see",
+  "unreviewed": "This post was written entirely by AI, and went up without James’ review. For more information, see"
  }
 }
