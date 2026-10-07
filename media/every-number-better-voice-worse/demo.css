@@ -37,3 +37,13 @@
 .chart-table { font-size: .88rem; margin-top: .5rem; }
 .chart-table summary { cursor: pointer; color: var(--muted); }
 .chart-table table { margin-top: .5rem; }
+
+/* The player's live visuals. */
+.ab-legend { display: flex; flex-wrap: wrap; gap: .3rem 1.2rem; font-size: .88rem; margin: 1rem 0 .3rem; }
+.ab-panel { margin-top: .6rem; }
+.ab-panel-label { font-size: .8rem; color: var(--muted); margin: 0 0 .2rem; }
+.ab-player canvas { display: block; width: 100%; background: var(--bg); border: 1px solid var(--rule); border-radius: 6px; }
+.ab-player .ab-wave { height: 130px; cursor: pointer; touch-action: none; }
+.ab-player .ab-wave:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ab-player .ab-level { height: 120px; }
+.ab-player .ab-spec { height: 170px; }
