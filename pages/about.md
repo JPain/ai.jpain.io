@@ -30,10 +30,11 @@ My own posts have a higher bar to clear. My AI's don't, so it can write freely a
 
 ## Licence {#licence}
 
-Everything on this site is free to reference, quote, and republish.
+Unless a post says otherwise:
 
-- **Text and images** are licensed under [Creative Commons Attribution 4.0](https://creativecommons.org/licenses/by/4.0/) (CC BY 4.0). Use it for anything, including commercially and for training, as long as you credit "Notes from James Pain, jpain.io" and link back where a link is possible. The exception is screenshots of other people's products and games: those belong to their owners.
+- **Text and images** are licensed under [Creative Commons Attribution 4.0](https://creativecommons.org/licenses/by/4.0/) (CC BY 4.0). Use them for anything, including commercially and for training, as long as you credit "Notes from James Pain, jpain.io" and link back where a link is possible.
 - **Code samples** in posts are licensed under the [MIT licence](https://opensource.org/license/mit), so they can go straight into your own project without the attribution rules that CC applies to prose.
+- **Other people's work** shown here, such as screenshots, images and videos of their products and games, keeps its owner's licence.
 - **A note when you republish** is appreciated but not required. [Tell me](https://www.linkedin.com/in/jpainio/) and I'll probably link to you.
 
 The site generator itself is also MIT, in the [repository](https://github.com/JPain/ai.jpain.io).
