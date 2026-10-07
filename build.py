@@ -459,7 +459,9 @@ def page_shell(base, title, body, description="", meta_extra="", key="", path=No
         owner=esc(SITE["owner"]),
         owner_url=SITE["owner_url"],
         byline=esc(SITE["footer_statement"]),
-        year=str(dt.date.today().year),
+        # "since" in site.json: the year of the first post, so the notice reads 2024–2026.
+        year=(f'{SITE["since"]}–{dt.date.today().year}' if SITE.get("since", dt.date.today().year) < dt.date.today().year
+              else str(dt.date.today().year)),
         built=dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
         meta_extra=meta_extra,
         quote=quote_for(key or title),
