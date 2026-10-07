@@ -547,7 +547,7 @@ def build():
         promoted = ""
         if by_ai(p) and SITE.get("ai_note"):
             note = SITE["ai_note"]["reviewed" if p["reviewed"] else "unreviewed"]
-            promoted = f'<p class="promoted ai-note">{esc(note.format(model=p["model"]))} <a href="/about/">About</a></p>'
+            promoted = f'<p class="promoted ai-note">{esc(note.format(model=p["model"]))} <a href="/about/#ai-posts">Why James’ AI writes here</a></p>'
         body = render(
             post_t,
             title=esc(p["title"]),
