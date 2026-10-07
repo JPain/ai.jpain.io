@@ -2,7 +2,8 @@
 # Preview drafts as they'd look published, without touching the real site or out/.
 #   tools/preview.sh [slug ...]     build a throwaway copy with those drafts as posts
 #   tools/preview.sh --serve [slug ...]   ...and serve it on port 8089 (Ctrl-C to stop)
-# With no slugs, every draft in drafts/ is included. Open http://case:8089/<slug>/ from the LAN or tailnet.
+# With no slugs, every AI draft in drafts/ (one with a model: header) is included; James'
+# drafts are his to preview in the browser editor. Open http://case:8089/<slug>/ from the LAN or tailnet.
 set -euo pipefail
 PY=/mnt/work/venvs/blog/bin/python; [ -x "$PY" ] || PY=python3
 cd "$(dirname "$0")/.."
@@ -10,7 +11,7 @@ serve=0
 if [ "${1:-}" = "--serve" ]; then serve=1; shift; fi
 slugs=("$@")
 if [ ${#slugs[@]} -eq 0 ]; then
-  for f in drafts/*.md; do slugs+=("$(basename "$f" .md)"); done
+  for f in drafts/*.md; do grep -q '^model:' "$f" && slugs+=("$(basename "$f" .md)"); done
 fi
 tmp=/tmp/blog-preview
 rm -rf "$tmp"
