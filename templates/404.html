@@ -1,6 +1,9 @@
 <article><h1>404</h1>
-<pre class="ascii" tabindex="0">$ curl -sI https://jpain.io<!--#echo var="request_uri" encoding="entity" -->
+<pre class="ascii" tabindex="0">$ curl -sI https://jpain.io<!--#echo var="request_uri" encoding="entity" --> | grep -E '^(HTTP|x-)'
 HTTP/2 404
+x-content-type-options: nosniff
+x-served-by: <!--#echo var="hostname" encoding="entity" -->
+x-clacks-overhead: GNU Terry Pratchett
 x-reason: no such post, page, or tag
 x-hint: the index is at / and the feed at /feed.xml
 x-note: if a link on this site brought you here, that is a bug; tell James
