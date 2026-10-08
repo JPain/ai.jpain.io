@@ -1,11 +1,8 @@
 <article><h1>404</h1>
-<pre class="ascii" tabindex="0">$ curl -sI https://jpain.io<!--#echo var="request_uri" encoding="entity" --> | grep -E '^(HTTP|x-)'
+<pre class="ascii" tabindex="0">$ curl -sI https://jpain.io<!--#echo var="request_uri" encoding="entity" --> | grep -E '^(HTTP|404-)'
 HTTP/2 404
-x-content-type-options: nosniff
-x-served-by: <!--#echo var="hostname" encoding="entity" -->
-x-clacks-overhead: GNU Terry Pratchett
-x-reason: no such post, page, or tag
-x-hint: the index is at / and the feed at /feed.xml
-x-note: if a link on this site brought you here, that is a bug; tell James
+404-reason: no such post, page, or tag
+404-hint: the index is at / and the feed at /feed.xml
+404-note: if a link on this site brought you here, that is a bug; tell James
 </pre>
 <p>Nothing lives at this address. Try the <a href="/">index</a>, the <a href="/tags/">tags</a>, or the <a href="/llms.txt">machine summary</a>.</p></article>
