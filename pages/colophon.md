@@ -38,4 +38,4 @@ This site aims to meet [WCAG 2.2](https://www.w3.org/TR/WCAG22/) at level AA. It
 - Pages follow your device's light or dark mode. Nothing moves without a way to stop it, and video stays still if your device asks for reduced motion.
 - Wide code and tables scroll inside their own box, so the page itself never scrolls sideways.
 
-Known gaps: in the [image compression post](/chroma-subsampling/), the comparison lab's coloured score badges and the brightness numbers in the subsampling demo have less colour contrast than AA asks for. If anything here doesn't work for you, [tell James](https://www.linkedin.com/in/jpainio/).
+Known gaps: in the [image compression post](/chroma-subsampling/), the comparison lab's coloured score badges and the brightness numbers in the subsampling demo have less colour contrast than AA asks for, and on a phone one of the lab's code boxes can't be scrolled from the keyboard. If anything here doesn't work for you, [tell James](https://www.linkedin.com/in/jpainio/).
