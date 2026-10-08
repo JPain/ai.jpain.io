@@ -31,3 +31,4 @@ figure.pixel .panel img { image-rendering: pixelated; }
   figure.panels.cols-3:not(.keep) { grid-template-columns: repeat(2, 1fr); }
   figure.panels.cols-2:not(.keep) { grid-template-columns: 1fr; }
   figure.panels.keep { gap: .6rem .4rem; }
+}

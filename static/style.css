@@ -1,6 +1,7 @@
 :root {
   --bg: #faf7f1; --fg: #1f1d1a; --muted: #6b665d; --rule: #e3ddd1;
   --accent: #b5502a; --accent-soft: #f3e4dc; --card: #f3efe6; --code: #efeae0;
+  --accent-on-soft: #a84a26;   /* the accent, a shade darker: 4.5:1 on --accent-soft (WCAG AA) */
   --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
   --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
   --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
@@ -9,6 +10,7 @@
   :root {
     --bg: #17161a; --fg: #e7e2d8; --muted: #9c968b; --rule: #2e2c33;
     --accent: #e8926b; --accent-soft: #2e2320; --card: #201f24; --code: #232228;
+    --accent-on-soft: var(--accent);
   }
 }
 * { box-sizing: border-box; }
@@ -39,6 +41,11 @@ pre.ascii { font-size: .8rem; line-height: 1.4; }
 .hl pre { margin: 0; }
 
 .promoted { background: var(--accent-soft); padding: .7rem 1rem; border-radius: 6px; font-size: .92rem; }
+.promoted a { color: var(--accent-on-soft); }
+/* Wide tables scroll inside their own box (build.py wraps them), so the page never scrolls sideways. */
+.table-scroll { overflow-x: auto; margin: 1.2rem 0; }
+.table-scroll > table { margin: 0; }
+header h1 { margin: 0; font-size: inherit; line-height: inherit; }
 
 ul.posts { list-style: none; padding: 0; margin: 0; }
 ul.posts li { padding: .9rem 0; border-bottom: 1px solid var(--rule); }

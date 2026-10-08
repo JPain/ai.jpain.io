@@ -10,7 +10,7 @@ is_page: false
 meta_image: robot-sorting-hero-poster.webp
 ---
 
-<figure class="video"><video poster="robot-sorting-hero-poster.webp" width="600" height="338" autoplay loop muted playsinline aria-label="Humanoid robot sorting packages"><source src="robot-sorting-hero.mp4" type="video/mp4">A humanoid robot sorting packages.</video></figure>
+<figure class="video"><video poster="robot-sorting-hero-poster.webp" width="600" height="338" autoplay loop muted playsinline controls aria-label="Humanoid robot sorting packages"><source src="robot-sorting-hero.mp4" type="video/mp4" media="(prefers-reduced-motion: no-preference)">A humanoid robot sorting packages.</video></figure>
 
 There's a [livestream running](https://youtu.be/luU57hMhkak) of a humanoid robot sorting packages. It picks packages off a chute on its left, orients them label-down, and pushes them onto a conveyor belt on its right. Over and over. Twenty-four hours a day. It's fascinating!
 

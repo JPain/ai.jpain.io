@@ -109,11 +109,16 @@ def figures(html_text, folder):
         return f'<figure>{IMG_TAG.sub(tag, m.group(1))}{cap}</figure>'
 
     out = IMG_P.sub(fig, html_text)
+    # Keyboard users can scroll a wide code block or table only if it can take focus (WCAG 2.1.1).
+    out = out.replace("<pre>", '<pre tabindex="0">')
+    out = re.sub(r"<table>(.*?)</table>", r'<div class="table-scroll" tabindex="0"><table>\1</table></div>', out, flags=re.S)
     return re.sub(r'<img (?![^>]*loading=)([^>]*)>', lambda m: tag(m), out)
 
 
 def absolute_images(html_text, slug):
-    """Feeds are read out of context, so image and link paths must be absolute there."""
+    """Feeds are read out of context, so image and link paths must be absolute there. A demo's
+    <script> and <link rel=stylesheet> are dropped: feed readers strip them anyway."""
+    html_text = re.sub(r'<script\b[^>]*>.*?</script>\s*|<link rel="stylesheet"[^>]*>\s*', "", html_text, flags=re.S)
     def fix(m):
         attr, path = m.group(1), m.group(2)
         return f'{attr}="{SITE["url"]}{path}"' if path.startswith("/") else f'{attr}="{SITE["url"]}/{slug}/{path}"'
@@ -444,6 +449,10 @@ def head_meta(path, title, description, og_type="website", image=""):
 
 
 def page_shell(base, title, body, description="", meta_extra="", key="", path=None, author=""):
+    # The site title is the page's top heading on the home page only; elsewhere the post or page title is.
+    brand = f'<a class="site-title" href="/">{esc(SITE["title"])}</a>'
+    if path == "/":
+        brand = f"<h1>{brand}</h1>"
     full = SITE["title"] if title == SITE["title"] else f"{title} · {SITE['title']}"
     if path is not None:
         meta_extra = head_meta(path, SITE["title"] if title == SITE["title"] else title,
@@ -455,6 +464,7 @@ def page_shell(base, title, body, description="", meta_extra="", key="", path=No
         site_title=esc(SITE["title"]),
         tagline=esc(SITE["tagline"]),
         site_url=SITE["url"],
+        brand=brand,
         page_author=esc(author or SITE["owner"]),
         owner=esc(SITE["owner"]),
         owner_url=SITE["owner_url"],

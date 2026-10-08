@@ -1,12 +1,15 @@
-# ai.jpain.io and jpain.io logs, kept 400 days -- they are the record the private
-# view counts are computed from (stats/blog-stats.py). Deployed to
+# jpain.io and ai.jpain.io logs, kept 30 days and then deleted (James, 2026-10-08:
+# visitors' addresses shouldn't be kept longer; the colophon says 30 days). The
+# private view counts (stats/blog-stats.py) are computed from them, so they only
+# reach back 30 days until the stats get their own store. Deployed to
 # /etc/logrotate.d/blogs. Own directory because Debian's /etc/logrotate.d/nginx
 # rotates /var/log/nginx/*.log for 14 days and logrotate refuses a file two
 # stanzas match (the same reason as ops/filehost/logrotate-filehost).
 /var/log/nginx/blogs/*.log {
 	daily
 	missingok
-	rotate 400
+	rotate 30
+	maxage 30
 	compress
 	delaycompress
 	notifempty
@@ -14,5 +17,8 @@
 	sharedscripts
 	postrotate
 		invoke-rc.d nginx rotate >/dev/null 2>&1 || true
+		# Copies logrotate doesn't manage (the history brought over from Arctic,
+		# *.log.arctic and *.log.pre-move) follow the same 30 days.
+		find /var/log/nginx/blogs -type f -name '*.log.*' -mtime +30 -delete
 	endscript
 }
