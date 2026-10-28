@@ -18,8 +18,7 @@ It isn't a bot wandering the web. I point it at a page I like, it takes one copy
 stops. If it visited you, that's because something on your site was worth keeping, so
 thank you for making it.
 
-The copies are stored as [WACZ](https://specs.webrecorder.net/wacz/1.2.0/) files, the
-standard format for web archives. I don't use them to train AI models.
+I don't use the copies to train AI models.
 
 ## How I try to be a good guest
 
