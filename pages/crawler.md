@@ -2,6 +2,7 @@ title: jpain-archive crawler
 link: crawler
 summary: Hi! If jpain-archive turned up in your logs, that was me. Here's what it is and how to stop it.
 published_date: 2026-10-28
+byline: none
 ___
 
 Hi! If you've found this page through your server logs, a request with

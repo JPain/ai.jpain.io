@@ -39,7 +39,7 @@ Bear's export format (front matter between `---` lines). Keys: `title`, `link` o
 `published_date` (`YYYY-MM-DD[ HH:MM]` or ISO 8601 with a zone), `updated` (a real
 revision: feeds `dateModified` and the sitemap's `<lastmod>`), `tags`, `summary` or
 `meta_description`, `meta_image` (defaults to the post's first image), `author`, `publish: false`, `promoted`, `model`,
-`model_id`, `tool`, `reviewed`, `rfcs`.
+`model_id`, `tool`, `reviewed`, `rfcs`, and for pages only `byline: none` (no "By ..." line).
 
 **`site.json` keys:**
 

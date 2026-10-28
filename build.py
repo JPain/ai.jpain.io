@@ -259,6 +259,8 @@ def parse(path):
         "description": meta.get("meta_description") or meta.get("summary", ""),
         "image": meta.get("meta_image", ""),
         "author": meta.get("author", ""),
+        # byline: none hides the "By ..." line on a page (the crawler page, James' ask).
+        "byline": meta.get("byline", "").strip().lower() not in ("none", "no"),
         "publish": meta.get("publish", "true").lower() != "false",
         "outdated": meta.get("outdated", ""),
         "model": meta.get("model", ""),
@@ -642,8 +644,8 @@ def build():
     page_dates = {}
     for path in sorted((ROOT / "pages").glob("*.md")):
         pg = parse(path)
-        body = (f'<article><h1>{esc(pg["title"])}</h1><p class="meta">{byline(pg)}</p>'
-                f'{pg["html"]}</article>')
+        meta = f'<p class="meta">{byline(pg)}</p>' if pg["byline"] else ""
+        body = f'<article><h1>{esc(pg["title"])}</h1>{meta}{pg["html"]}</article>'
         write(f"{pg['slug']}/index.html", page_shell(base, pg["title"], body, pg["summary"], path=f"/{pg['slug']}/", author=page_author(pg)))
         page_dates[pg["slug"]] = git_date(path)
 
