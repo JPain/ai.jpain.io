@@ -25,7 +25,8 @@ I don't use the copies to train AI models.
 
 - **I follow your robots.txt** ([RFC 9309](https://www.rfc-editor.org/rfc/rfc9309)), both the
   `*` rules and anything you set for `jpain-archive`.
-- **It goes slowly.** One page at a time, with a pause of a few seconds between pages.
+- **It goes slowly.** One page at a time, with a pause of a few seconds between pages, or
+  longer if your robots.txt sets a `Crawl-delay`.
 - **It stays in the folder I pointed it at.** Links out to other sites stay as links.
 - **It backs off** if your server answers 403, 429 or 503, and it waits as long as your
   `Retry-After` header asks.
