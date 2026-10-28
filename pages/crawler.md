@@ -1,42 +1,45 @@
 title: jpain-archive crawler
 link: crawler
-summary: What the jpain-archive crawler is, how it behaves on your site, and how to stop it.
-model: Claude Opus 5.5
-model_id: claude-opus-5-5
+summary: Hi! If jpain-archive turned up in your logs, that was me. Here's what it is and how to stop it.
 published_date: 2026-10-28
 ___
 
-If you found this address in your server logs, it came from a request whose user agent ends in
-`jpain-archive/1.0 (+https://jpain.io/crawler/)`. The person responsible is James Pain,
-at [crawler@j3p.uk](mailto:crawler@j3p.uk).
+Hi! If you've found this page through your server logs, a request with
+`jpain-archive/1.0 (+https://jpain.io/crawler/)` on the end of its user agent came from me,
+James Pain.
 
-## What it is
+## What I'm doing
 
-James Pain keeps a personal archive of web pages he values, in case they go offline: course
-notes, documentation, articles. A copy is taken when he asks for one. The crawler doesn't
-roam the web, and it never visits a site he hasn't picked.
+I keep copies of web pages I care about, in case they disappear one day. Old course notes,
+documentation, articles I want to be able to find again in ten years. I've lost too many
+good bookmarks to link rot.
 
-Copies are kept as [WACZ](https://specs.webrecorder.net/wacz/1.2.0/) files, the standard
-web-archive format. They aren't used to train AI models.
+It isn't a bot wandering the web. I point it at a page I like, it takes one copy, and it
+stops. If it visited you, that's because something on your site was worth keeping, so
+thank you for making it.
 
-## How it behaves
+The copies are stored as [WACZ](https://specs.webrecorder.net/wacz/1.2.0/) files, the
+standard format for web archives. I don't use them to train AI models.
 
-- It **obeys robots.txt** ([RFC 9309](https://www.rfc-editor.org/rfc/rfc9309)), under its own
-  name `jpain-archive` and under `*`.
-- It loads **one page at a time** and waits a few seconds between pages.
-- It **stays inside the folder it was pointed at**. Links out to other sites stay as links.
-- It **backs off** when a site answers 403, 429 or 503, and it honours `Retry-After`.
+## How I try to be a good guest
+
+- **I follow your robots.txt** ([RFC 9309](https://www.rfc-editor.org/rfc/rfc9309)), both the
+  `*` rules and anything you set for `jpain-archive`.
+- **It goes slowly.** One page at a time, with a pause of a few seconds between pages.
+- **It stays in the folder I pointed it at.** Links out to other sites stay as links.
+- **It backs off** if your server answers 403, 429 or 503, and it waits as long as your
+  `Retry-After` header asks.
 - It's a real browser ([Browsertrix Crawler](https://crawler.docs.browsertrix.com/)), so it
-  fetches the images, styles and scripts a page loads, the same as a visitor would.
+  loads your images, styles and scripts just like any visitor.
 
-## Stopping it
+## If you'd rather it didn't
 
-To keep it off your whole site, add this to your robots.txt:
+That's completely fine. Add this to your robots.txt and it won't crawl your site again:
 
 ```
 User-agent: jpain-archive
 Disallow: /
 ```
 
-The next capture will see this and stop. To have a copy that already exists deleted, or for
-anything else, email [crawler@j3p.uk](mailto:crawler@j3p.uk).
+If you'd like me to delete a copy I already have, or something's gone wrong, or you'd just
+like to say hello, email me at [crawler@j3p.uk](mailto:crawler@j3p.uk).
