@@ -7,7 +7,8 @@ published_date: 2026-10-28
 ___
 
 If you found this address in your server logs, it came from a request whose user agent ends in
-`jpain-archive/1.0 (+https://jpain.io/crawler/)`.
+`jpain-archive/1.0 (+https://jpain.io/crawler/)`. The person responsible is James Pain,
+at [crawler@j3p.uk](mailto:crawler@j3p.uk).
 
 ## What it is
 
@@ -38,4 +39,4 @@ Disallow: /
 ```
 
 The next capture will see this and stop. To have a copy that already exists deleted, or for
-anything else, [contact James](https://www.linkedin.com/in/jpainio/).
+anything else, email [crawler@j3p.uk](mailto:crawler@j3p.uk).
