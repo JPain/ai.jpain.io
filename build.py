@@ -373,7 +373,7 @@ def quote_for(key):
 
 
 def contact_email():
-    """The contact address behind a proof-of-work wall (static/contact.js), never plain text in the HTML.
+    """The contact address behind a quiet proof-of-work (static/contact.js), never plain text in the HTML.
     The browser hashes "<challenge>:<n>" for n = 0, 1, 2... until a SHA-256 starts with POW_BITS zero
     bits; the address is XORed with SHA-256 of "<challenge>:<n>:key" for that first n, so it can't be
     read without doing the work. Deterministic: the same address always builds the same page."""
@@ -381,16 +381,16 @@ def contact_email():
     if not c:
         return ""
     addr = f'{c["user"]}@{c["domain"]}'.encode()
-    bits = c.get("pow_bits", 20)
+    bits = c.get("pow_bits", 18)
     challenge = hashlib.sha256(f'{SITE["url"]} contact {c["user"]} {c["domain"]}'.encode()).hexdigest()[:16]
     n = 0
     while int.from_bytes(hashlib.sha256(f"{challenge}:{n}".encode()).digest(), "big") >> (256 - bits):
         n += 1
     key = hashlib.sha256(f"{challenge}:{n}:key".encode()).digest()
     cipher = base64.b64encode(bytes(a ^ k for a, k in zip(addr, key))).decode()
-    return (f'<div class="contact"><p>Email: <button type="button" class="pow-start" '
-            f'data-c="{challenge}" data-bits="{bits}" data-x="{cipher}">Prove you’re human</button></p>'
-            '<div class="pow" hidden><pre class="pow-log" aria-live="polite"></pre></div></div>'
+    return (f'<p class="contact">Email: <button type="button" class="pow-start" '
+            f'data-c="{challenge}" data-bits="{bits}" data-x="{cipher}">Show email address</button>'
+            '<span class="pow-status" aria-live="polite"></span></p>'
             '<script src="/contact.js" defer></script>')
 
 
