@@ -629,13 +629,13 @@ def build():
         shutil.copytree((ROOT / src).resolve(), OUT / dest, dirs_exist_ok=True,
                         ignore=shutil.ignore_patterns(".*", "__pycache__"))
 
-    # index and tag pages
+    # index and tag pages: date, writer and title only (James cut the summaries 2026-11-01:
+    # they made the home page too long; they still feed the description meta and the feeds)
     def listing(items, heading="", template=index_t):
         rows = "".join(
             ("<li>" if not SITE.get("tag_filter") else f'<li data-tags="{esc(" ".join(tag_slug(t) for t in p["tags"]))}">')
             + f'<span class="when"><time datetime="{p["date"].date().isoformat()}">{p["date"].strftime("%-d %b %Y")}</time>{writer_mark(p)}</span> '
             f'<a href="/{p["slug"]}/">{esc(p["title"])}</a>'
-            + (f'<br><span class="summary">{esc(p["summary"])}</span>' if p["summary"] else "")
             + "</li>"
             for p in items
         )
