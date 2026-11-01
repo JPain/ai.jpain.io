@@ -69,7 +69,7 @@ chk "post markdown 200"                   "200"                   "$(code "https
 chk "post markdown is text/markdown"      "text/markdown; charset=utf-8" "$(ctype "https://$D${POST}index.md")"
 chk "feed.xml application/xml"            "application/xml; charset=utf-8" "$(ctype "https://$D/feed.xml")"
 chk "feed.json application/json"          "application/json; charset=utf-8" "$(ctype "https://$D/feed.json")"
-chk "home marks AI posts"                 "yes"                   "$("${C[@]}" "https://$D/" | grep -q 'class="by-ai"' && echo yes || echo no)"
+chk "archive marks AI posts"              "yes"                   "$("${C[@]}" "https://$D/archive/" | grep -q 'class="by-ai"' && echo yes || echo no)"
 chk "an AI post says it was written by AI" "1"                    "$("${C[@]}" "https://$D/philips-air-performer-7000-local-coap/" | grep -c 'class="promoted ai-note">This post was written entirely by AI')"
 chk "home marks James' posts"             "yes"                   "$("${C[@]}" "https://$D/" | grep -q 'class="by-owner"' && echo yes || echo no)"
 echo "--- Bear Blog's addresses, kept by redirect"
