@@ -28,7 +28,9 @@ index, feed and description meta), meta_image (share image; defaults to the post
 updated (date of a real revision: dateModified and sitemap lastmod), author (byline override),
 publish (false = not built), outdated (a note under the title of a post things have
 overtaken), model and model_id (a post that names a model was written by
-that AI, and says so; every other post is the owner's). Everything else is ignored.
+that AI, and says so; every other post is the owner's), cowritten (with model and model_id: the
+owner and that AI wrote it together; the value says who did what, in the note under the title).
+Everything else is ignored.
 """
 import datetime as dt
 import email.utils
@@ -221,6 +223,9 @@ def parse(path):
     # Every other post is the owner's.
     if meta.get("model") and not meta.get("model_id"):
         sys.exit(f"{path}: model: needs model_id: as well")
+    # cowritten: <who did what> marks a post the owner and the AI wrote together.
+    if meta.get("cowritten") and not meta.get("model"):
+        sys.exit(f"{path}: cowritten: needs model: and model_id: as well")
     slug = meta.get("link") or meta.get("slug") or path.stem
     if not re.fullmatch(r"[a-z0-9-]+", slug):
         sys.exit(f"{path}: bad slug {slug!r}")
@@ -235,7 +240,7 @@ def parse(path):
     tags = [t.strip() for t in meta.get("tags", "").split(",") if t.strip()]
     # The owner's posts can be typed differently (site.json "owner_typing"): jpain.io keeps James'
     # quotes and ... exactly as typed, and reads Bear's Markdown, as on Bear.
-    typing = SITE if meta.get("model") else {**SITE, **SITE.get("owner_typing", {})}
+    typing = SITE if meta.get("model") and not meta.get("cowritten") else {**SITE, **SITE.get("owner_typing", {})}
     exts = [e for e in MD_EXTENSIONS if typing.get("smart_quotes", True) or e != "smarty"]
     md = markdown.Markdown(extensions=exts, extension_configs=MD_CONFIG)
     words = len(re.findall(r"\S+", body))
@@ -265,6 +270,7 @@ def parse(path):
         "outdated": meta.get("outdated", ""),
         "model": meta.get("model", ""),
         "model_id": meta.get("model_id", ""),
+        "cowritten": meta.get("cowritten", ""),
         "tool": meta.get("tool", "Claude Code"),
         # reviewed: none marks a post published without the owner's review (standing permission).
         "reviewed": "" if meta.get("reviewed", SITE["owner"]).strip().lower() in ("none", "no") else meta.get("reviewed", SITE["owner"]),
@@ -318,11 +324,19 @@ def tag_links(tags):
 
 def by_ai(p):
     """A post written by an AI names its model in the header."""
-    return bool(p["model"])
+    return bool(p["model"]) and not p["cowritten"]
+
+
+def cowritten(p):
+    """A post the owner and the AI wrote together: it names the model and says who did what."""
+    return bool(p["model"]) and bool(p["cowritten"])
 
 
 def author_name(p):
-    """Who wrote it, as plain text: the model for the AI's posts, else the post's author or the owner."""
+    """Who wrote it, as plain text: the model for the AI's posts, both for joint ones, else the
+    post's author or the owner."""
+    if cowritten(p):
+        return f'{SITE["owner"]} and {SITE.get("ai_name", p["model"])}'
     return p["model"] if by_ai(p) else (p["author"] or SITE["owner"])
 
 
@@ -335,6 +349,8 @@ def writer_mark(p):
     purpose; the post itself names the model and says plainly that an AI wrote it."""
     if by_ai(p):
         return ' · <span class="by-ai">AI</span>'
+    if cowritten(p):
+        return f' · <span class="by-owner">{esc(SITE.get("owner_short", SITE["owner"]))}</span> + <span class="by-ai">AI</span>'
     return f' · <span class="by-owner">{esc(SITE.get("owner_short", SITE["owner"]))}</span>'
 
 
@@ -480,6 +496,8 @@ def page_shell(base, title, body, description="", meta_extra="", key="", path=No
 
 def page_author(p):
     """<meta name="author">: the model, with who supervises it, or the owner."""
+    if cowritten(p):
+        return f'{SITE["owner"]} and {p["model"]} (an AI model by Anthropic)'
     return f'{p["model"]} (an AI model by Anthropic), supervised by {SITE["owner"]}' if by_ai(p) else author_name(p)
 
 
@@ -509,6 +527,8 @@ def post_meta(p):
         ld["author"] = model_ld(p)
         if p["reviewed"]:
             ld["editor"] = owner_ld()
+    elif cowritten(p):
+        ld["author"] = [owner_ld(), model_ld(p)]
     else:
         ld["author"] = owner_ld()
     return out + json_ld(ld)
@@ -566,6 +586,10 @@ def build():
         if by_ai(p) and SITE.get("ai_note"):
             note = SITE["ai_note"]["reviewed" if p["reviewed"] else "unreviewed"]
             promoted += f'<p class="promoted ai-note">{esc(note.format(model=p["model"]))} <a href="/about/#ai-posts">Why James’ AI writes here</a>.</p>'
+        # A joint post says so too, and who did what (its cowritten: header).
+        if cowritten(p) and SITE.get("ai_note"):
+            note = SITE["ai_note"]["cowritten"].format(model=p["model"], cowritten=p["cowritten"])
+            promoted += f'<p class="promoted ai-note">{esc(note)} <a href="/about/#ai-posts">Why James’ AI writes here</a>.</p>'
         body = render(
             post_t,
             title=esc(p["title"]),
@@ -696,6 +720,8 @@ def feeds(posts):
     entry_author = atom.get("entry_author")
 
     def who(p):
+        if cowritten(p):
+            return f'{SITE["owner"]} and {p["model"]} ({p["model_id"]})'
         if entry_author and p["model_id"] and not p["reviewed"]:
             return f'{p["model"]} ({p["model_id"]}), not reviewed before publishing'
         return render(entry_author, model=p["model"], model_id=p["model_id"], reviewed=p["reviewed"]) \
@@ -758,9 +784,10 @@ def feeds(posts):
                 "content_html": absolute_images(p["html"], p["slug"]),
                 "date_published": iso(p["date"]),
                 "tags": p["tags"],
-                "authors": [{"name": f"{p['model']} ({p['model_id']})" if p["model_id"] else author_name(p)}],
+                "authors": [{"name": SITE["owner"]}, {"name": f"{p['model']} ({p['model_id']})"}] if cowritten(p) else
+                           [{"name": f"{p['model']} ({p['model_id']})" if p["model_id"] else author_name(p)}],
             }
-            if jf.get("provenance") and by_ai(p):
+            if jf.get("provenance") and p["model"]:
                 it["_provenance"] = {"model": p["model"], "model_id": p["model_id"], "tool": p["tool"],
                                      "reviewed_by": p["reviewed"] or None, "source_markdown": f"{SITE['url']}/{p['slug']}/index.md",
                                      "revision": p["git"] and p["git"]["hash"], "words": p["words"]}

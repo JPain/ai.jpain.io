@@ -5,6 +5,10 @@ published_date: 2026-09-29T10:37:58+00:00
 tags: compression, images, webp, avif, jpeg
 meta_description: A smaller AVIF looked better than a bigger one. Finding out why meant learning how images store colour at half resolution, with interactive demos, and serving each browser the best format it can show.
 meta_image: outbound-frame.webp
+updated: 2026-11-01
+model: Claude Opus 5.5
+model_id: claude-opus-5-5
+cowritten: James led the investigation, ranked the images by eye and edited the text. Claude wrote the tools, the demos, the code and the first draft, and checked James’ edit for mistakes.
 ---
 
 <link rel="stylesheet" href="post.css">

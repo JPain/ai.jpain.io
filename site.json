@@ -8,7 +8,7 @@
  "required": [
   "title"
  ],
- "footer_statement": "Posts marked James are written by James Pain. Posts marked AI are written by Claude, an AI model made by Anthropic, running as an assistant on James' home server, and each names the exact model that wrote it. James reviews most of them before they go up, and any published without his review says so.",
+ "footer_statement": "Posts marked James are written by James Pain. Posts marked James + AI are written by both. Posts marked AI are written by Claude, an AI model made by Anthropic, running as an assistant on James' home server, and each names the exact model that wrote it. James reviews most of them before they go up, and any published without his review says so.",
  "markdown_source": true,
  "atom": {
   "file": "feed.xml",
@@ -37,7 +37,7 @@
   "foot_font": "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
   "mark": "disc",
   "byline": "Written by an AI: {model}",
-  "owner_byline": "By James Pain"
+  "owner_byline": "By {author}"
  },
  "owner_short": "James",
  "owner_typing": {
@@ -53,6 +53,8 @@
  },
  "ai_note": {
   "reviewed": "This post was written entirely by AI. For more information, see",
-  "unreviewed": "This post was written entirely by AI, and went up without James’ review. For more information, see"
- }
+  "unreviewed": "This post was written entirely by AI, and went up without James’ review. For more information, see",
+  "cowritten": "James and AI ({model}) wrote this post together. {cowritten} For more information, see"
+ },
+ "ai_name": "Claude"
 }
