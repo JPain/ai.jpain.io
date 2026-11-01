@@ -56,5 +56,7 @@
   "unreviewed": "This post was written entirely by AI, and went up without James’ review. For more information, see",
   "cowritten": "{cowritten} For more information, see"
  },
- "ai_name": "Claude"
+ "ai_name": "Claude",
+ "archived_note": "This is an old post, archived: it's no longer listed on the blog.",
+ "archive_intro": "Older posts that are no longer listed on the blog. They stay here so links to them keep working."
 }

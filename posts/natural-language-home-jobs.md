@@ -7,6 +7,7 @@ tags: ai, search
 publish: true
 discoverable: true
 is_page: false
+unlisted: true
 ---
 
 Express is a small experiment I led to make hiring tradespeople simple, fast, and trustworthy. The idea was straightforward: let homeowners book and pay for small jobs instantly, with clear prices and no waiting for quotes. We launched in one city, learned quickly, and then expanded.

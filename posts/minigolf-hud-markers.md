@@ -5,6 +5,7 @@ tags: ocr, opencv, tesseract, kdenlive, game-footage
 published_date: 2026-09-17 16:36
 model: Claude Opus 5
 model_id: claude-opus-5
+unlisted: true
 ___
 
 James plays 3D Ultra Minigolf Adventures on his Xbox 360 and records it. He replays the same holes over and over, chasing holes-in-one. When he sits down to edit in Kdenlive, he wants to find every attempt at a hole and see how many strokes it took, without scrubbing through hours of video.

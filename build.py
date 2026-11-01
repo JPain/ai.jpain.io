@@ -26,7 +26,8 @@ front matter between `---` lines, as in Bear's export. Keys used: title (require
 zone; defaults to now), tags (comma-separated), summary or meta_description (one line for the
 index, feed and description meta), meta_image (share image; defaults to the post's first image),
 updated (date of a real revision: dateModified and sitemap lastmod), author (byline override),
-publish (false = not built), outdated (a note under the title of a post things have
+publish (false = not built), unlisted (true = built at its address but left off
+the home page, tags, feeds and sitemap, listed only on /archive/, and noindex), outdated (a note under the title of a post things have
 overtaken), model and model_id (a post that names a model was written by
 that AI, and says so; every other post is the owner's), cowritten (with model and model_id: the
 owner and that AI wrote it together; the value is the note under the title, saying plainly who did
@@ -268,6 +269,7 @@ def parse(path):
         # byline: none hides the "By ..." line on a page (the crawler page, James' ask).
         "byline": meta.get("byline", "").strip().lower() not in ("none", "no"),
         "publish": meta.get("publish", "true").lower() != "false",
+        "unlisted": meta.get("unlisted", "").strip().lower() in ("true", "yes"),
         "outdated": meta.get("outdated", ""),
         "model": meta.get("model", ""),
         "model_id": meta.get("model_id", ""),
@@ -319,8 +321,10 @@ def tag_slug(t):
     return re.sub(r"[^a-z0-9.]+", "-", t.lower()).strip("-")
 
 
-def tag_links(tags):
-    return ", ".join(f'<a href="/tags/{esc(tag_slug(t))}/">{esc(t)}</a>' for t in tags)
+def tag_links(tags, linked=None):
+    """Tags as links to their pages; a tag with no page (only unlisted posts use it) stays plain text."""
+    return ", ".join(f'<a href="/tags/{esc(tag_slug(t))}/">{esc(t)}</a>' if linked is None or tag_slug(t) in linked
+                     else esc(t) for t in tags)
 
 
 def by_ai(p):
@@ -507,6 +511,8 @@ def post_meta(p):
     url = f'{SITE["url"]}/{p["slug"]}/'
     image = post_image(p)
     out = f'<meta name="ai-model" content="{esc(p["model_id"])}">\n' if p["model_id"] else ""
+    if p["unlisted"]:
+        out += '<meta name="robots" content="noindex">\n'
     if SITE.get("markdown_source"):
         out += f'<link rel="alternate" type="text/markdown" title="This post as Markdown" href="/{p["slug"]}/index.md">\n'
     out += head_meta(f'/{p["slug"]}/', p["title"], p["description"], "article", image)
@@ -576,10 +582,18 @@ def build():
         if p["slug"] in seen:
             sys.exit(f"duplicate slug {p['slug']}")
         seen.add(p["slug"])
+    # unlisted: true keeps a post at its address but off the home page, tags, feeds and sitemap
+    # (James, 2026-11-01: old posts he no longer likes); /archive/ lists them.
+    listed = [p for p in posts if not p["unlisted"]]
+    archived = [p for p in posts if p["unlisted"]]
+    listed_tags = {tag_slug(t) for p in listed for t in p["tags"]}
 
     # posts
     for p in posts:
         promoted = ""
+        if p["unlisted"]:
+            promoted += f'<p class="promoted">{esc(SITE.get("archived_note", "This post is archived."))} <a href="/archive/">Archive</a>.</p>'
+
         # outdated: <note> puts a note under the title of a post that things have overtaken.
         if p["outdated"]:
             promoted += f'<p class="promoted">{esc(p["outdated"])}</p>'
@@ -597,7 +611,7 @@ def build():
             date=p["date"].strftime("%-d %B %Y"),
             iso_date=p["date"].date().isoformat(),
             slug=p["slug"],
-            tags=tag_links(p["tags"]),
+            tags=tag_links(p["tags"], listed_tags),
             author=byline(p),
             promoted=promoted,
             content=p["html"] + rfc_box(p["rfcs"]),
@@ -628,6 +642,9 @@ def build():
             continue
         shutil.copytree((ROOT / src).resolve(), OUT / dest, dirs_exist_ok=True,
                         ignore=shutil.ignore_patterns(".*", "__pycache__"))
+
+    # From here on, only listed posts: the archived ones appear on /archive/ and nowhere else.
+    posts = listed
 
     # index and tag pages: date, writer and title only (James cut the summaries 2026-11-01:
     # they made the home page too long; they still feed the description meta and the feeds)
@@ -660,6 +677,10 @@ def build():
         items = [p for p in posts if any(tag_slug(t) == ts for t in p["tags"])]
         write(f"tags/{ts}/index.html", page_shell(base, f"Tag: {name}", listing(items, f"<h1>Tagged “{esc(name)}”</h1>"),
                                                   f"Posts tagged “{name}” on {SITE['title']}.", path=f"/tags/{ts}/"))
+    if archived:
+        write("archive/index.html", page_shell(
+            base, "Archive", listing(archived, f'<h1>Archive</h1><p>{esc(SITE.get("archive_intro", ""))}</p>'),
+            f"Archived posts on {SITE['title']}.", meta_extra='<meta name="robots" content="noindex">', path="/archive/"))
     if tags:
         tl = "".join(f'<li><a href="/tags/{esc(ts)}/">{esc(sorted(by_slug[ts])[0])}</a></li>' for ts in tags)
         write("tags/index.html", page_shell(base, "Tags", f"<h1>Tags</h1><ul class=\"tags\">{tl}</ul>",

@@ -7,6 +7,7 @@ tags: architecture, heritage, platform
 publish: true
 discoverable: true
 is_page: false
+unlisted: true
 ---
 
 

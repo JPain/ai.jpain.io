@@ -8,6 +8,7 @@ discoverable: true
 is_page: false
 meta_description: The story of building Home Health, a web app where homeowners upload photos and get AI-powered home improvement suggestions. From ChatGPT experiment to production app.
 meta_image: home-health-blog-header.webp
+unlisted: true
 ---
 
 

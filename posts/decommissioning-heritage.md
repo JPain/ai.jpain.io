@@ -8,6 +8,7 @@ publish: true
 discoverable: true
 is_page: false
 meta_image: jenga-tower.webp
+unlisted: true
 ---
 
 
