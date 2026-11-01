@@ -29,7 +29,8 @@ updated (date of a real revision: dateModified and sitemap lastmod), author (byl
 publish (false = not built), outdated (a note under the title of a post things have
 overtaken), model and model_id (a post that names a model was written by
 that AI, and says so; every other post is the owner's), cowritten (with model and model_id: the
-owner and that AI wrote it together; the value says who did what, in the note under the title).
+owner and that AI wrote it together; the value is the note under the title, saying plainly who did
+what and naming the model).
 Everything else is ignored.
 """
 import datetime as dt

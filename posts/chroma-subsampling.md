@@ -8,7 +8,7 @@ meta_image: outbound-frame.webp
 updated: 2026-11-01
 model: Claude Opus 5.5
 model_id: claude-opus-5-5
-cowritten: James led the investigation, ranked the images by eye and edited the text. Claude wrote the tools, the demos, the code and the first draft, and checked James’ edit for mistakes.
+cowritten: An AI, Claude Opus 5.5, wrote the first draft of this post and all of its code, tools and demos, and checked James’ edit for mistakes. James chose what to test, judged the images by eye and edited the draft.
 ---
 
 <link rel="stylesheet" href="post.css">
