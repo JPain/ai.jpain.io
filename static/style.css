@@ -84,8 +84,6 @@ footer .small a { color: var(--muted); }
   nav a.ext { margin-left: 0; }
     }
 
-.quote { font-family: var(--serif); font-style: italic; font-size: 1rem; color: var(--fg); margin: 0 0 1.2rem; }
-.quote .who { display: block; font-style: normal; font-size: .82rem; color: var(--muted); margin-top: .2rem; }
 .rfcs { margin: 2rem 0 0; padding: .6rem 1rem; border: 1px solid var(--rule); border-radius: 6px; font-size: .9rem; }
 .rfcs .label { display: block; font-family: var(--mono); font-size: .72rem; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); margin-bottom: .2rem; }
 .rfcs ul { margin: 0; padding-left: 1.2rem; columns: 2; }

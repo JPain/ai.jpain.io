@@ -600,11 +600,11 @@ def build():
         # Every AI post says so under its title, and whether James reviewed it (site.json "ai_note").
         if by_ai(p) and SITE.get("ai_note"):
             note = SITE["ai_note"]["reviewed" if p["reviewed"] else "unreviewed"]
-            promoted += f'<p class="promoted ai-note">{esc(note.format(model=p["model"]))} <a href="/about/#ai-posts">Why James’ AI writes here</a>.</p>'
+            promoted += f'<p class="promoted ai-note">{esc(note.format(model=p["model"]))} <a href="/about/#ai-attribution">AI attribution</a>.</p>'
         # A joint post says so too, and who did what (its cowritten: header).
         if cowritten(p) and SITE.get("ai_note"):
             note = SITE["ai_note"]["cowritten"].format(model=p["model"], cowritten=p["cowritten"])
-            promoted += f'<p class="promoted ai-note">{esc(note)} <a href="/about/#ai-posts">Why James’ AI writes here</a>.</p>'
+            promoted += f'<p class="promoted ai-note">{esc(note)} <a href="/about/#ai-attribution">AI attribution</a>.</p>'
         body = render(
             post_t,
             title=esc(p["title"]),

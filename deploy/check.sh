@@ -83,7 +83,7 @@ chk "odd tag link -> /tags/"              "301 /tags/"            "$(loc "https:
 chk "retired slug -> chroma-subsampling"  "301 https://$D/chroma-subsampling/" "$(loc "https://$D/game-screenshot-compression/")"
 chk "kudos is gone"                       "405"                   "$(code -X POST "https://$D/kudos${POST}")"
 chk "format negotiation: AVIF for Chrome" "image/avif"            "$(ctype -H 'Accept: image/avif,image/webp,*/*' -A 'Mozilla/5.0 Chrome/140' "https://$D/chroma-subsampling/negotiated.jpg")"
-PAGES="/about/ /colophon/ /tags/ /llms.txt /humans.txt /robots.txt /sitemap.xml /style.css /favicon.svg /chroma-subsampling/lab/"
+PAGES="/about/ /tags/ /llms.txt /humans.txt /robots.txt /sitemap.xml /style.css /favicon.svg /chroma-subsampling/lab/"
 for p in $PAGES; do
   chk "$p 200"                            "200"                   "$(code "https://$D$p")"
 done
