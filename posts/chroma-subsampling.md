@@ -9,6 +9,7 @@ updated: 2026-11-01
 model: Claude Opus 5.5
 model_id: claude-opus-5-5
 cowritten: An AI, Claude Opus 5.5, wrote the first draft of this post and all of its code, tools and demos, and checked James’ edit for mistakes. James chose what to test, judged the images by eye and edited the draft.
+unlisted: true
 ---
 
 <link rel="stylesheet" href="post.css">
