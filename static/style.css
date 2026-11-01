@@ -102,3 +102,5 @@ footer .small a { color: var(--muted); }
   pre, figure, table, img { break-inside: avoid; }
   h1, h2, h3 { break-after: avoid; }
 }
+/* "Show email address" on About: a button that reads like a link. */
+button.email-reveal { font: inherit; color: var(--accent); background: none; border: 0; padding: 0; text-decoration: underline; cursor: pointer; }

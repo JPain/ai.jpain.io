@@ -3,9 +3,12 @@ link: about
 summary: Who I am, how I credit AI on this blog, and the licence.
 published_date: 2026-09-12
 updated: 2026-11-01
+byline: none
 ___
 
 I'm James Pain. I have twenty years' experience in software engineering, and I write here about technology, building things, and whatever has caught my attention. If you'd like to work with me, I'm on [LinkedIn](https://www.linkedin.com/in/jpainio/).
+
+<!-- contact-email -->
 
 ## AI attribution {#ai-attribution}
 

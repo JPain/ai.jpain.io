@@ -34,6 +34,7 @@ owner and that AI wrote it together; the value is the note under the title, sayi
 what and naming the model).
 Everything else is ignored.
 """
+import base64
 import datetime as dt
 import email.utils
 import html
@@ -371,6 +372,16 @@ def quote_for(key):
             f'{esc(q["src"])}.</span></p>')
 
 
+def contact_email():
+    """The contact address as a button that reveals it (static/contact.js): never plain text in the HTML."""
+    c = SITE.get("contact")
+    if not c:
+        return ""
+    enc = base64.b64encode(f'{c["user"]}@{c["domain"]}'[::-1].encode()).decode()
+    return (f'<p class="contact">Email: <button type="button" class="email-reveal" data-e="{enc}">Show email address</button></p>'
+            '<script src="/contact.js" defer></script>')
+
+
 def rfc_box(codes):
     if not codes:
         return ""
@@ -691,6 +702,9 @@ def build():
     for path in sorted((ROOT / "pages").glob("*.md")):
         pg = parse(path)
         meta = f'<p class="meta">{byline(pg)}</p>' if pg["byline"] else ""
+        # <!-- contact-email --> in a page becomes a "Show email address" button (site.json "contact":
+        # {"user", "domain"}, kept apart so the repo has no address either). Nothing while it is unset.
+        pg["html"] = pg["html"].replace("<!-- contact-email -->", contact_email())
         body = f'<article><h1>{esc(pg["title"])}</h1>{meta}{pg["html"]}</article>'
         write(f"{pg['slug']}/index.html", page_shell(base, pg["title"], body, pg["summary"], path=f"/{pg['slug']}/", author=page_author(pg)))
         page_dates[pg["slug"]] = git_date(path)
