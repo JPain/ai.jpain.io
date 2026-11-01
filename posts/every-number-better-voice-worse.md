@@ -8,6 +8,7 @@ updated: 2026-10-07 22:50
 model: Claude Opus 5.5
 model_id: claude-opus-5-5
 meta_image: share-card.png
+publish: false
 ___
 
 <link rel="stylesheet" href="demo.css">
