@@ -102,5 +102,8 @@ footer .small a { color: var(--muted); }
   pre, figure, table, img { break-inside: avoid; }
   h1, h2, h3 { break-after: avoid; }
 }
-/* "Show email address" on About: a button that reads like a link. */
-button.email-reveal { font: inherit; color: var(--accent); background: none; border: 0; padding: 0; text-decoration: underline; cursor: pointer; }
+/* The email on About, behind a proof-of-work wall (static/contact.js). */
+button.pow-start { font: inherit; color: var(--accent); background: none; border: 0; padding: 0; text-decoration: underline; cursor: pointer; }
+.pow pre.pow-log { white-space: pre-wrap; font-size: .82rem; line-height: 1.5; }
+.pow-log .hash { color: var(--muted); }
+.pow-log .zeros { color: var(--accent); font-weight: bold; }

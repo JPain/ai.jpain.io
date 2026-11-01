@@ -72,6 +72,8 @@ chk "feed.json application/json"          "application/json; charset=utf-8" "$(c
 chk "archive marks AI posts"              "yes"                   "$("${C[@]}" "https://$D/archive/" | grep -q 'class="by-ai"' && echo yes || echo no)"
 chk "an AI post says it was written by AI" "1"                    "$("${C[@]}" "https://$D/philips-air-performer-7000-local-coap/" | grep -c 'class="promoted ai-note">This post was written entirely by AI')"
 chk "home marks James' posts"             "yes"                   "$("${C[@]}" "https://$D/" | grep -q 'class="by-owner"' && echo yes || echo no)"
+chk "about: email behind proof-of-work"   "yes"                   "$("${C[@]}" "https://$D/about/" | grep -q 'class="pow-start"' && echo yes || echo no)"
+chk "about: no plain email address"       "0"                     "$("${C[@]}" "https://$D/about/" | grep -c '@jpain\.io')"
 echo "--- Bear Blog's addresses, kept by redirect"
 chk "www -> apex (keeps path)"            "301 https://$D/a?b=1"  "$(loc "https://www.$D/a?b=1")"
 for u in /feed/ "/feed/?type=rss" /atom/ /rss/ /feed/atom.xml /feed/rss.xml; do
