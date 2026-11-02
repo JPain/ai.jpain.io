@@ -289,10 +289,12 @@ async function swapPreview(url, seq) {
   if (seq !== previewSeq) return true;         // a newer preview is on its way
   const next = new DOMParser().parseFromString(html, "text/html");
   const assets = (d) => [...d.querySelectorAll("link[rel=stylesheet], script[src]")].map((e) => e.getAttribute("href") || e.getAttribute("src")).join("|");
-  const demo = [...next.querySelectorAll("main script[src]")].some((e) => e.getAttribute("src") !== "/youtube.js");
+  // youtube.js and lightbox.js listen on the whole page, so they work on swapped-in content.
+  const shared = ["/youtube.js", "/lightbox.js"];
+  const demo = [...next.querySelectorAll("main script[src]")].some((e) => !shared.includes(e.getAttribute("src")));
   if (demo || !next.querySelector("main") || assets(next) !== assets(doc)) return false;
   const main = doc.importNode(next.querySelector("main"), true);
-  main.querySelectorAll("script").forEach((e) => e.remove());   // youtube.js is loaded already
+  main.querySelectorAll("script").forEach((e) => e.remove());   // already loaded
   doc.querySelector("main").replaceWith(main);
   doc.title = next.title;
   return true;
@@ -483,7 +485,7 @@ async function loadMedia() {
   box.hidden = !cur;
   if (!cur) return;
   const r = (await api("GET", "/_api/media?path=" + encodeURIComponent(cur.path))).data;
-  mediaFiles = r.files.filter((f) => IMAGE.test(f)).map((f) => ({ name: f, kb: r.sizes[f], original: (r.originals || []).includes(f) }));
+  mediaFiles = r.files.filter((f) => IMAGE.test(f)).map((f) => ({ name: f, kb: r.sizes[f] }));
   $("media-count").textContent = mediaFiles.length ? `(${mediaFiles.length})` : "";
   $("media").replaceChildren(...mediaFiles.map(({ name, kb }) => {
     const li = document.createElement("li");
@@ -557,56 +559,28 @@ function radios(legend, name, choices, value) {
   return fs;
 }
 
-// Alt text is asked for every time: the checks fail without it. The compression can be switched
-// here (re-encoded from the uploaded original), and the image can sit narrower than the column.
+// Alt text is asked for every time: the checks fail without it. Compression is automatic
+// (server.py encode()); the only choice is how large the image appears on the page.
+const SIZES = [["", "Full width", ""], ["medium", "Medium", "About half the column."], ["small", "Small", "For phone screenshots and small images."]];
 async function imageDialog(name, info) {
   const known = mediaFiles.find((f) => f.name === name) || {};
-  let st = info ? { ...info } : { kb: known.kb, original: known.original };
-  let bust = 0;
   const img = document.createElement("img");
   img.className = "dlg-img";
   img.alt = "";
+  img.src = mediaUrl(name, info ? info.kb : known.kb);
   const note = document.createElement("p");
   note.className = "hint";
-  const show = () => {
-    img.src = mediaUrl(name, `${st.kb}-${bust}`);
-    note.textContent = `${name}: ${st.width ? `${st.width}×${st.height}, ` : ""}${st.kb} KB${st.mode ? `, encoded as a ${st.mode}` : ""}.`;
-  };
-  show();
-  const kind = radios("Compression", "kind", [
-    ["photo", "Photo", "Smallest file. Right for photos and game footage."],
-    ["screenshot", "Screenshot or text", "Sharper text and edges. Often smaller too, for screens and diagrams."],
-  ], st.mode);
-  if (!st.original) {
-    kind.querySelectorAll("input").forEach((i) => { i.disabled = true; });
-    const h = document.createElement("small");
-    h.className = "choice-note";
-    h.textContent = "Only images added from 2 November 2026 keep their original, so this one can't be re-encoded.";
-    kind.append(h);
-  }
-  kind.addEventListener("change", async () => {
-    note.textContent = "Encoding…";
-    try {
-      st = (await api("POST", "/_api/reencode", { path: cur.path, name, mode: kind.value() })).data;
-      bust++;
-      show();
-      loadMedia();
-      schedulePreview(0);
-    } catch (e) { note.textContent = "Couldn't re-encode it: " + e.message; }
-  });
-  const width = radios("Width on the page", "width", [
-    ["full", "Full width", ""],
-    ["narrow", "Narrow", "For tall phone screenshots and small images."],
-  ], "full");
+  note.textContent = info ? `${name}: ${info.width}×${info.height}, ${info.kb} KB.` : `${name}: ${known.kb} KB.`;
+  const size = radios("Size on the page", "size", SIZES, "");
   const alt = field("Alt text", "textarea", { rows: 2, placeholder: "What the image shows",
     hint: "Read out to people who can't see it, and shown if it doesn't load. Required." });
   const cap = field("Caption", "input", { placeholder: "Optional", hint: "Shown under the image." });
-  const v = await ask("Insert image", group(img, note, kind, width, alt, cap), [["Cancel", "cancel"], ["Insert", "ok", "primary"]], "",
+  const v = await ask("Insert image", group(img, note, size, alt, cap), [["Cancel", "cancel"], ["Insert", "ok", "primary"]], "",
     { validate: () => alt.input.value.trim() ? "" : "Write the alt text first." });
   if (v !== "ok") { text.focus(); return; }
   const a = alt.input.value.trim().replace(/\s+/g, " ");
   const c = cap.input.value.trim();
-  insert(`![${mdText(a)}](${name}${c ? mdTitle(c) : ""})${width.value() === "narrow" ? "{.narrow}" : ""}`);
+  insert(`![${mdText(a)}](${name}${c ? mdTitle(c) : ""})${size.value() ? `{.${size.value()}}` : ""}`);
 }
 
 // The upload lands in the folder of the saved slug, so unsaved changes are saved first.

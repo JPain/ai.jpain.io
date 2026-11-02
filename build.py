@@ -642,6 +642,14 @@ def write(rel, content, image_bytes=0):
     p.write_text(content)
 
 
+def lightbox(p):
+    """Posts with images load static/lightbox.js: click an image to see it larger. A video's
+    thumbnail doesn't count; it plays instead."""
+    if any(not i.get("src", "").startswith("youtube-") for i in p["images"]):
+        return '\n<script src="/lightbox.js" defer></script>'
+    return ""
+
+
 def render_post(p, base, post_t, listed_tags):
     """Write one post's page, its Markdown source, its media folder and its share card into OUT."""
     promoted = ""
@@ -668,7 +676,7 @@ def render_post(p, base, post_t, listed_tags):
         tags=tag_links(p["tags"], listed_tags),
         author=byline(p),
         promoted=promoted,
-        content=p["html"] + rfc_box(p["rfcs"]),
+        content=p["html"] + rfc_box(p["rfcs"]) + lightbox(p),
     )
     # Everything in the post's media folder is published beside it: images the
     # post shows, and the files a live demo needs (.js, .css, .html, data).

@@ -70,12 +70,13 @@ used if the post shows it, if it shares a name with one the post shows
 or `.html` files names it.
 
 **Images from the editor:** WebP, at most 1600 px wide (twice the text column, for
-high-density screens), metadata stripped and phone photos turned upright. Two encodings: *photo*
-(lossy, quality 80) and *screenshot* (lossless when it fits under 290 KB, else lossy at 92 down
-to 80); PNG, GIF and BMP uploads start as screenshots, the rest as photos, and the insert dialog
-switches between them by re-encoding from the uploaded original, which is kept in
-`/mnt/work/cache/jpain-editor-originals/<slug>/` (not published, not in git). `{.narrow}` after an
-image caps it at 22rem, for tall phone screenshots.
+high-density screens), metadata stripped and phone photos turned upright. Compression is
+automatic (tools/editor/server.py encode()): lossless when that is at most a third bigger than
+lossy quality 80 (screenshots, diagrams; often smaller as well), lossy otherwise (photos, game
+footage), always under 290 KB. James asked for no compression choices, only size: `{.medium}`
+(24rem) or `{.small}` (15rem) after an image; full width otherwise. Posts with images load
+`static/lightbox.js`: click a plain Markdown image shown smaller than its file to see it larger
+(demo figures, which have a class, and links are left alone).
 
 **YouTube videos:** a link alone in its paragraph, marked `{.youtube}`:
 `[Video title](https://youtu.be/ID "Optional caption"){.youtube}`. It renders as the

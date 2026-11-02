@@ -18,8 +18,7 @@ Publish runs ./publish.sh exactly as from a terminal.
   GET  /_api/media?path=       the post's media files, with sizes
   GET  /_api/media/file?path=&name=  one of them (the editor's thumbnails)
   DELETE /_api/media?path=&name=     delete one of them, by exact name
-  POST /_api/upload?path=&name=  raw image body: stripped, scaled to 1600 px, saved as WebP
-  POST /_api/reencode          {path, name, mode}: encode again from the uploaded original
+  POST /_api/upload?path=&name=  raw image body: stripped, upright, at most 1600 px, WebP (encode())
   POST /_api/youtube           {path, url}: the video's id, start and title; saves its thumbnail
   anything else                the last preview build (so /<slug>/, /fonts/... resolve as on the site)
 """
@@ -241,67 +240,56 @@ def publish(rel):
                 "reason": "" if code == 0 else plain(log.splitlines()[-1] if log else "")}
 
 
-# The file you uploaded, kept outside the site so an image can be re-encoded (photo or screenshot)
-# from the original rather than from an already-compressed copy. Not published, not in git.
-ORIGINALS = Path(os.environ.get("EDITOR_ORIGINALS", "/mnt/work/cache/jpain-editor-originals"))
 MAX_W = 1600          # twice the text column (about 760 px), for high-density screens
 MAX_KB = 290          # the build refuses images over 300 KB
 
 
-def encode(data, mode):
-    """WebP bytes, the mode used and the size, from an uploaded file.
+def encode(data):
+    """WebP bytes and size from an uploaded file, compressed the right way automatically.
 
-    photo: lossy, quality 80 (lower only if needed to stay under MAX_KB): the smallest file.
-    screenshot: lossless if that fits under MAX_KB, else lossy at a high quality, so text and
-    hard edges stay crisp. auto: screenshot for PNG, GIF and BMP sources, photo otherwise."""
+    Both encodings are tried: lossless (exact, crisp text and edges) and lossy at quality 80.
+    Lossless wins when it is at most a third bigger: that's screenshots, diagrams and UI, where it
+    is often smaller as well. Photos and game footage come out far smaller lossy. Lossy quality
+    only drops below 80 if needed to stay under MAX_KB."""
     im = Image.open(io.BytesIO(data))
     im.load()
-    if mode == "auto":
-        mode = "screenshot" if im.format in ("PNG", "GIF", "BMP") else "photo"
     im = ImageOps.exif_transpose(im)             # phone photos: turn them the right way up first
     im = im.convert("RGBA" if im.mode in ("RGBA", "LA", "P") and ("transparency" in im.info or im.mode != "P") else "RGB")
     if im.width > MAX_W:
         im = im.resize((MAX_W, round(im.height * MAX_W / im.width)), Image.LANCZOS)
     clean = Image.new(im.mode, im.size)          # a fresh image carries no EXIF, GPS or profile
     clean.paste(im)
-    tries = ([{"lossless": True, "quality": 80, "method": 4}] + [{"quality": q, "method": 6} for q in (92, 88, 84, 80)]
-             if mode == "screenshot" else [{"quality": q, "method": 6} for q in (80, 72, 64, 56)])
-    for opts in tries:
+
+    def webp(**opts):
         buf = io.BytesIO()
         clean.save(buf, "WEBP", **opts)
-        if buf.tell() <= MAX_KB * 1024:
+        return buf.getvalue()
+
+    lossy = webp(quality=80, method=6)
+    exact = webp(lossless=True, quality=80, method=4)
+    if len(exact) <= MAX_KB * 1024 and len(exact) <= len(lossy) * 4 / 3:
+        return exact, clean.size
+    for q in (72, 64, 56):
+        if len(lossy) <= MAX_KB * 1024:
             break
-    return buf.getvalue(), mode, clean.size
+        lossy = webp(quality=q, method=6)
+    return lossy, clean.size
 
 
-def upload(rel, name, data, mode="auto"):
+def upload(rel, name, data):
     path = source(rel)
     text = path.read_text() if path.exists() else ""
     folder = media_for(path, text)
     stem = re.sub(r"[^a-z0-9-]+", "-", Path(name).stem.lower()).strip("-") or "image"
-    webp, mode, (w, h) = encode(data, mode)
+    data, (w, h) = encode(data)
     folder.mkdir(parents=True, exist_ok=True)
     out = folder / f"{stem}.webp"
     n = 2
     while out.exists():
         out = folder / f"{stem}-{n}.webp"
         n += 1
-    out.write_bytes(webp)
-    keep = ORIGINALS / folder.name / out.name
-    keep.parent.mkdir(parents=True, exist_ok=True)
-    keep.with_suffix(".orig").write_bytes(data)
-    return {"name": out.name, "kb": round(len(webp) / 1024), "width": w, "height": h, "mode": mode, "original": True}
-
-
-def reencode(rel, name, mode):
-    """Encode an image again from the file that was uploaded, as a photo or a screenshot."""
-    f = media_file(rel, name)
-    orig = (ORIGINALS / f.parent.name / name).with_suffix(".orig")
-    if not orig.is_file():
-        raise ValueError("this image's original isn't kept (it was added before 2 November 2026), so it can't be re-encoded")
-    webp, mode, (w, h) = encode(orig.read_bytes(), mode)
-    f.write_bytes(webp)
-    return {"name": name, "kb": round(len(webp) / 1024), "width": w, "height": h, "mode": mode, "original": True}
+    out.write_bytes(data)
+    return {"name": out.name, "kb": round(len(data) / 1024), "width": w, "height": h}
 
 
 def media_file(rel, name):
@@ -419,8 +407,7 @@ class Handler(BaseHTTPRequestHandler):
                 folder = media_for(path, path.read_text())
                 files = sorted((f for f in folder.iterdir() if f.is_file()), key=lambda f: f.name) if folder.is_dir() else []
                 return self.send(200, {"files": [f.name for f in files],
-                                       "sizes": {f.name: round(f.stat().st_size / 1024) for f in files},
-                                       "originals": [f.name for f in files if (ORIGINALS / folder.name / f.name).with_suffix(".orig").is_file()]})
+                                       "sizes": {f.name: round(f.stat().st_size / 1024) for f in files}})
             if p == "/_api/media/file":
                 q = self.query()
                 return self.static(media_file(q.get("path"), q.get("name")).parent, q.get("name"))
@@ -442,9 +429,7 @@ class Handler(BaseHTTPRequestHandler):
             if urllib.parse.urlsplit(self.path).path != "/_api/media":
                 return self.send(404, {"error": "no such endpoint"})
             q = self.query()
-            f = media_file(q.get("path"), q.get("name"))
-            f.unlink()
-            (ORIGINALS / f.parent.name / f.name).with_suffix(".orig").unlink(missing_ok=True)
+            media_file(q.get("path"), q.get("name")).unlink()
             return self.send(200, {"deleted": q.get("name")})
         except (ValueError, FileNotFoundError) as e:
             return self.send(400, {"error": str(e)})
@@ -473,10 +458,8 @@ class Handler(BaseHTTPRequestHandler):
         try:
             if p == "/_api/upload":
                 q = self.query()
-                return self.send(200, upload(q.get("path"), q.get("name", "image"), self.body(), q.get("mode", "auto")))
+                return self.send(200, upload(q.get("path"), q.get("name", "image"), self.body()))
             req = json.loads(self.body() or b"{}")
-            if p == "/_api/reencode":
-                return self.send(200, reencode(req.get("path"), req.get("name"), req.get("mode", "photo")))
             if p == "/_api/youtube":
                 return self.send(200, add_video(req.get("path"), req.get("url")))
             if p == "/_api/preview":

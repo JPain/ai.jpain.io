@@ -174,4 +174,3 @@ dialog pre { background: var(--code); padding: .7rem .9rem; border-radius: 6px; 
 .choice label { display: flex; gap: .5rem; align-items: baseline; padding: .15rem 0; cursor: pointer; }
 .choice label span b { font-weight: 500; }
 .choice label span small { color: var(--muted); font-size: .8rem; margin-left: .4rem; }
-.choice-note { display: block; color: var(--muted); font-size: .78rem; }
