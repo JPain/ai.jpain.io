@@ -7,7 +7,8 @@ Each site's look is data in its site.json under "card":
       "bg": "#faf7f1", "fg": "#1f1d1a", "muted": "#6b665d", "accent": "#b5502a", "rule": "#e3ddd1",
       "title_font": "/usr/share/fonts/opentype/urw-base35/P052-Bold.otf",   # absolute, or relative to the site folder
       "brand_font": "...", "foot_font": "...",
-      "mark": "disc" | "tilde",           # the site's logo mark, drawn as shapes
+      "mark": "disc" | "tilde" | "none",  # the site's logo mark, drawn as shapes; none: the name alone
+      "brand_color": "#1a6ea8",           # optional: the name's colour (default muted)
       "brand": "Notes from James' AI",    # beside the mark
       "byline": "Written by an AI: {model}"   # foot left on posts; {model}, {author}, {date}
     }
@@ -91,10 +92,13 @@ def render(cfg, root, title, foot_left, foot_right, subtitle=""):
 
     # Top: mark + brand.
     m = 52
-    img.paste(_mark(cfg["mark"], m, cfg), (PAD, PAD - 6), _mark(cfg["mark"], m, cfg))
+    bx = PAD
+    if cfg.get("mark", "none") != "none":
+        img.paste(_mark(cfg["mark"], m, cfg), (PAD, PAD - 6), _mark(cfg["mark"], m, cfg))
+        bx = PAD + m + 20
     if title != cfg["brand"]:   # the site's own card has the name as its title already
         brand = _font(cfg, "brand_font", 34, root)
-        d.text((PAD + m + 20, PAD - 6 + m / 2), cfg["brand"], font=brand, fill=cfg["muted"], anchor="lm")
+        d.text((bx, PAD - 6 + m / 2), cfg["brand"], font=brand, fill=cfg.get("brand_color", cfg["muted"]), anchor="lm")
 
     # Bottom: a rule, then byline left and domain right.
     foot = _font(cfg, "foot_font", 26, root)

@@ -16,7 +16,7 @@ fi
 tmp=/tmp/blog-preview
 rm -rf "$tmp"
 mkdir -p "$tmp"
-cp -r build.py site.json templates static pages posts quotes.json "$tmp"/
+cp -r build.py cards.py site.json templates static pages posts card-fonts "$tmp"/
 [ -d media ] && cp -r media "$tmp"/ || mkdir -p "$tmp/media"
 [ -f CNAME ] && cp CNAME "$tmp"/
 for s in "${slugs[@]}"; do

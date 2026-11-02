@@ -59,6 +59,7 @@ revision: feeds `dateModified` and the sitemap's `<lastmod>`), `tags`, `summary`
 | `smart_quotes` | `false` keeps quotes and `...` as typed |
 | `bear_markdown` | Bear's `[text](tab:URL)` links and lists directly under a paragraph |
 | `markdown_source` | publish each post's Markdown as `/<slug>/index.md` |
+| `list_years` | post lists group by year: each year's first post gets `class="new-year" data-year`, and dates drop the year |
 | `mounts` | `{"dest": "../other/folder"}` copies another project's pages in. A nested mount only appears once its post is published |
 
 **What gets published beside a post:** the whole `media/<slug>/` folder, so a live demo's
@@ -74,6 +75,14 @@ video's thumbnail, `youtube-<ID>.webp` in the post's media folder (the editor sa
 by hand, `tools/youtube.py posts/x.md`), with a play button. Nothing loads from YouTube
 until a reader presses play; `static/youtube.js` then swaps in a youtube-nocookie.com
 player, which the CSP's `frame-src` allows. Feeds and no-JS readers get a link.
+
+**The design** (James' pick, 2026-11-02): "Plain with margins", `static/style.css`. Charis SIL
+(self-hosted in `static/fonts`, OFL; TTFs for the share cards in `card-fonts/`), a white page,
+classic blue/purple links, and cerulean ink (`#1a6ea8`) for the name, headings, years and the
+double rule. On wide screens a left margin holds the years and a post's author, date and tags.
+James wanted it to look like a person's choices rather than AI-made: no uppercase spaced labels,
+no cream and terracotta, no serif-over-sans pairing, no pills, shadows or glyph logo. The other
+directions he saw are in `work/designs` (git-ignored; `build.sh --serve`).
 
 ## Writing and publishing
 

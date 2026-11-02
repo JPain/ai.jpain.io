@@ -1,5 +1,6 @@
-# Pinned so a build on Case matches the one GitHub Actions made (checked 2026-09-28:
-# identical output apart from the "Built" timestamp). Venv on Case: /mnt/work/venvs/blog
-markdown==3.5.2
+# Pinned so every build on Case is reproducible. Venv on Case: /mnt/work/venvs/blog, on uv's
+# Python 3.14. Upgraded 2026-10-01 to the latest releases: both sites built byte-identical
+# to the previous pins (markdown 3.5.2, pillow 10.2.0, Python 3.12).
+markdown==3.11
 pygments==2.21.0
-pillow==10.2.0
+pillow==12.3.0

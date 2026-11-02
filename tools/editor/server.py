@@ -142,7 +142,7 @@ def preview(rel, text):
     slug = slug_of(path, text)
     with build_lock:
         PREVIEW.mkdir(parents=True, exist_ok=True)
-        for name in ("templates", "static", "pages", "quotes.json"):
+        for name in ("templates", "static", "pages", "card-fonts"):
             link = PREVIEW / name
             # Relinked when it points anywhere else (it pointed at ops/jpain.io until 2026-11-02).
             if not (link.is_symlink() and link.readlink() == SITE / name):

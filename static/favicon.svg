@@ -1,11 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <!-- The ◍ mark beside the site title, drawn as shapes so it needs no font:
-       an accent disc cut by two vertical gaps. Dark tabs get the dark-mode accent. -->
-  <style>.m{fill:#b5502a}@media (prefers-color-scheme:dark){.m{fill:#e8926b}}</style>
-  <defs><clipPath id="c"><circle cx="32" cy="32" r="30"/></clipPath></defs>
-  <g clip-path="url(#c)" class="m">
-    <rect x="2" y="2" width="15" height="60"/>
-    <rect x="24.5" y="2" width="15" height="60"/>
-    <rect x="47" y="2" width="15" height="60"/>
-  </g>
+  <!-- A white J (Charis SIL Bold, as outlines so it needs no font) on the site's cerulean ink. -->
+  <style>.b{fill:#1a6ea8}@media (prefers-color-scheme:dark){.b{fill:#6fbbea}.j{fill:#141414}}</style>
+  <rect class="b" width="64" height="64"/>
+  <path class="j" fill="#fff" transform="matrix(0.02701 0 0 -0.02701 17.780 50.109)" d="M1004 1270 879 1260Q860 1258 847.0 1246.0Q834 1234 834 1214V496Q834 338 784.0 219.0Q734 100 628.0 33.5Q522 -33 354 -33Q270 -33 183.5 -12.5Q97 8 49 25V399H209L256 125Q256 125 266.5 107.5Q277 90 309 90Q423 90 483.0 180.0Q543 270 543 502V1214Q543 1234 529.0 1246.0Q515 1258 498 1260L371 1270V1374H1004Z"/>
 </svg>

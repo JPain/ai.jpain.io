@@ -27,17 +27,18 @@
  },
  "share_cards": true,
  "card": {
-  "bg": "#faf7f1",
-  "fg": "#1f1d1a",
-  "muted": "#6b665d",
-  "accent": "#b5502a",
-  "rule": "#e3ddd1",
-  "title_font": "/usr/share/fonts/opentype/urw-base35/P052-Bold.otf",
-  "brand_font": "/usr/share/fonts/opentype/urw-base35/P052-Roman.otf",
-  "foot_font": "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
-  "mark": "disc",
+  "bg": "#ffffff",
+  "fg": "#141414",
+  "muted": "#5c5c5c",
+  "accent": "#1a6ea8",
+  "rule": "#dedede",
+  "title_font": "card-fonts/CharisSIL-Bold.ttf",
+  "brand_font": "card-fonts/CharisSIL-Bold.ttf",
+  "foot_font": "card-fonts/CharisSIL-Regular.ttf",
+  "mark": "none",
   "byline": "Written by an AI: {model}",
-  "owner_byline": "By {author}"
+  "owner_byline": "By {author}",
+  "brand_color": "#1a6ea8"
  },
  "owner_short": "James",
  "owner_typing": {
@@ -63,5 +64,6 @@
   "user": "james",
   "domain": "jpain.io",
   "pow_bits": 18
- }
+ },
+ "list_years": true
 }

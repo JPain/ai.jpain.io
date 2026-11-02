@@ -1,21 +1,24 @@
-/* jpain.io editor: the site's own look (static/style.css): warm paper, serif titles, rust accent. */
+/* jpain.io editor: the site's own look (static/style.css): white page, Charis SIL, cerulean ink. */
+@font-face { font-family: "Charis SIL"; src: url(/fonts/charis-400.woff2) format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Charis SIL"; src: url(/fonts/charis-400i.woff2) format("woff2"); font-weight: 400; font-style: italic; font-display: swap; }
+@font-face { font-family: "Charis SIL"; src: url(/fonts/charis-700.woff2) format("woff2"); font-weight: 700; font-display: swap; }
 :root {
-  --bg: #faf7f1; --fg: #1f1d1a; --muted: #6b665d; --rule: #e3ddd1;
-  --accent: #b5502a; --accent-fg: #fff; --accent-soft: #f3e4dc; --accent-on-soft: #a84a26;
-  --card: #f3efe6; --code: #efeae0; --paper: #fffdf9;
+  --bg: #fff; --fg: #141414; --muted: #5c5c5c; --rule: #dedede;
+  --accent: #1a6ea8; --accent-fg: #fff; --accent-soft: #e4eff8; --accent-on-soft: #15598a;
+  --card: #f6f6f6; --code: #f3f3f3; --paper: #fff;
   --good: #2f6b3a; --bad: #b3261e; --warn: #9a4b00;
-  --shadow: 0 1px 2px rgb(60 40 20 / .06), 0 8px 24px rgb(60 40 20 / .08);
-  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --shadow: 0 8px 30px rgb(0 0 0 / .12);
+  --serif: "Charis SIL", Charter, Georgia, serif;
   --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
   --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) { :root {
-  --bg: #17161a; --fg: #e7e2d8; --muted: #9c968b; --rule: #2e2c33;
-  --accent: #e8926b; --accent-fg: #17161a; --accent-soft: #2e2320; --accent-on-soft: #e8926b;
-  --card: #201f24; --code: #232228; --paper: #1b1a1f;
+  --bg: #141414; --fg: #e4e4e4; --muted: #a3a3a3; --rule: #333;
+  --accent: #6fbbea; --accent-fg: #141414; --accent-soft: #16283a; --accent-on-soft: #6fbbea;
+  --card: #1c1c1c; --code: #1f1f1f; --paper: #181818;
   --good: #8fd19e; --bad: #ff8a80; --warn: #f2b264;
-  --shadow: 0 1px 2px rgb(0 0 0 / .3), 0 8px 24px rgb(0 0 0 / .35);
+  --shadow: 0 8px 30px rgb(0 0 0 / .5);
   color-scheme: dark;
 } }
 
@@ -27,9 +30,8 @@ button, input, textarea, select { font: inherit; color: inherit; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* ---------------------------------------------------------------- top bar */
-.bar { display: flex; align-items: center; gap: .5rem 1rem; padding: .55rem 1rem; border-bottom: 2px solid var(--accent); flex-wrap: wrap; }
-.wordmark { font-family: var(--serif); font-size: 1.2rem; font-weight: 600; white-space: nowrap; letter-spacing: -.01em; }
-.wordmark::before { content: "◍"; color: var(--accent); margin-right: .4rem; }
+.bar { display: flex; align-items: center; gap: .5rem 1rem; padding: .55rem 1rem; border-bottom: 3px double var(--accent); flex-wrap: wrap; }
+.wordmark { font-family: var(--serif); font-size: 1.2rem; font-weight: 700; color: var(--accent); white-space: nowrap; letter-spacing: -.01em; }
 .wordmark b { font-weight: 400; font-style: italic; color: var(--muted); }
 .doc { font-family: var(--serif); font-size: 1.05rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1 1 10rem; }
 .state { font-size: .8rem; color: var(--muted); white-space: nowrap; }
@@ -128,9 +130,9 @@ iframe { flex: 1; width: 100%; border: 0; background: var(--bg); }
 }
 
 /* ---------------------------------------------------------------- dialogs */
-dialog { border: 1px solid var(--rule); border-radius: 10px; background: var(--bg); color: var(--fg); width: min(34rem, calc(100vw - 2rem)); max-width: min(46rem, calc(100vw - 2rem)); padding: 1.3rem 1.5rem; box-shadow: var(--shadow); }
+dialog { border: 1px solid var(--rule); border-radius: 4px; background: var(--bg); color: var(--fg); width: min(34rem, calc(100vw - 2rem)); max-width: min(46rem, calc(100vw - 2rem)); padding: 1.3rem 1.5rem; box-shadow: var(--shadow); }
 dialog.wide { width: min(46rem, calc(100vw - 2rem)); }
-dialog::backdrop { background: rgb(20 15 10 / .4); }
+dialog::backdrop { background: rgb(0 0 0 / .4); }
 dialog h2 { margin: 0 0 .8rem; font: 600 1.3rem/1.25 var(--serif); }
 dialog p { margin: 0 0 .7rem; }
 dialog pre { background: var(--code); padding: .7rem .9rem; border-radius: 6px; max-height: 50vh; overflow: auto; font: .75rem/1.45 var(--mono); white-space: pre-wrap; }

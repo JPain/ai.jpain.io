@@ -714,13 +714,20 @@ def build():
     # index and tag pages: date, writer and title only (James cut the summaries 2026-11-01:
     # they made the home page too long; they still feed the description meta and the feeds)
     def listing(items, heading="", template=index_t):
-        rows = "".join(
-            ("<li>" if not SITE.get("tag_filter") else f'<li data-tags="{esc(" ".join(tag_slug(t) for t in p["tags"]))}">')
-            + f'<span class="when"><time datetime="{p["date"].date().isoformat()}">{p["date"].strftime("%-d %b %Y")}</time>{writer_mark(p)}</span> '
-            f'<a href="/{p["slug"]}/">{esc(p["title"])}</a>'
-            + "</li>"
-            for p in items
-        )
+        # site.json "list_years": the first post of each year carries the year (class="new-year"
+        # data-year="2026") for the stylesheet to show, and the dates drop it.
+        years = SITE.get("list_years")
+        rows, last = [], None
+        for p in items:
+            y = p["date"].year
+            attrs = f' class="new-year" data-year="{y}"' if years and y != last else ""
+            last = y
+            if SITE.get("tag_filter"):
+                attrs += f' data-tags="{esc(" ".join(tag_slug(t) for t in p["tags"]))}"'
+            rows.append(f'<li{attrs}><span class="when"><time datetime="{p["date"].date().isoformat()}">'
+                        f'{p["date"].strftime("%-d %b" if years else "%-d %b %Y")}</time>{writer_mark(p)}</span> '
+                        f'<a href="/{p["slug"]}/">{esc(p["title"])}</a></li>')
+        rows = "".join(rows)
         return render(template, heading=heading, posts=rows or "<li>Nothing yet.</li>")
 
     if SITE.get("card"):
