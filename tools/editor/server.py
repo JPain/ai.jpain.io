@@ -19,11 +19,14 @@ Publish runs ./publish.sh exactly as from a terminal.
   GET  /_api/media/file?path=&name=  one of them (the editor's thumbnails)
   DELETE /_api/media?path=&name=     delete one of them, by exact name
   POST /_api/upload?path=&name=  raw image body: stripped, scaled to 1600 px, saved as WebP
+  POST /_api/reencode          {path, name, mode}: encode again from the uploaded original
   POST /_api/youtube           {path, url}: the video's id, start and title; saves its thumbnail
   anything else                the last preview build (so /<slug>/, /fonts/... resolve as on the site)
 """
 import argparse
+import contextlib
 import hashlib
+import importlib
 import io
 import ipaddress
 import json
@@ -38,7 +41,7 @@ import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageOps
 
 HERE = Path(__file__).resolve().parent
 SITE = HERE.parent.parent                      # ops/blog: the engine and the jpain.io site
@@ -120,9 +123,11 @@ def listing():
             rel = f"{kind}/{f.name}"
             out.append({"path": rel, "kind": kind, "title": meta.get("title") or f.stem,
                         "slug": slug_of(f, text), "date": (meta.get("published_date") or "")[:10],
+                        "edited": f.stat().st_mtime,
                         "hidden": meta.get("publish", "").lower() == "false",
                         "unpublished": kind == "posts" and unpublished(rel)})
-    drafts = [p for p in out if p["kind"] == "drafts"]
+    # Drafts have no date until they're published: the one saved most recently comes first.
+    drafts = sorted((p for p in out if p["kind"] == "drafts"), key=lambda p: p["edited"], reverse=True)
     posts = sorted((p for p in out if p["kind"] == "posts"), key=lambda p: p["date"], reverse=True)
     return drafts + posts
 
@@ -133,35 +138,52 @@ def run(cmd, env=None, timeout=60):
     return r.returncode, (r.stdout + r.stderr).strip()
 
 
-def preview(rel, text):
-    """Build the whole site into PREVIEW with this one file's text in place, then check it.
+def engine():
+    """build.py, imported once and re-imported when it changes on disk: building in this process
+    saves starting Python and importing Markdown, Pygments and Pillow on every keystroke."""
+    b = youtube.build
+    m = Path(b.__file__).stat().st_mtime
+    if getattr(b, "_editor_mtime", m) != m:
+        b = importlib.reload(b)
+    b._editor_mtime = m
+    b.NO_CARDS = True                            # share cards: slow, and no preview shows them
+    return b
+
+
+def preview(rel, text, full=True):
+    """Build the site into PREVIEW with this one file's text in place, then check it.
 
     Every other post is a symlink to the real file, so the preview is the site as it would
-    be after publishing this text. A draft is built as a post, dated now if undated."""
+    be after publishing this text. A draft is built as a post, dated now if undated.
+    full=False re-renders only this post's page into the last full build: the editor asks for
+    that while you type, and for a full build when a post is opened or saved."""
     path = source(rel)
     slug = slug_of(path, text)
     with build_lock:
-        PREVIEW.mkdir(parents=True, exist_ok=True)
-        for name in ("templates", "static", "pages", "card-fonts"):
-            link = PREVIEW / name
-            # Relinked when it points anywhere else (it pointed at ops/jpain.io until 2026-11-02).
-            if not (link.is_symlink() and link.readlink() == SITE / name):
-                if link.is_dir() and not link.is_symlink():
-                    shutil.rmtree(link)
-                else:
-                    link.unlink(missing_ok=True)
-                link.symlink_to(SITE / name)
-        site = json.loads((SITE / "site.json").read_text())
-        site["mounts"] = {k: str((SITE / v).resolve()) for k, v in site.get("mounts", {}).items()}
-        (PREVIEW / "site.json").write_text(json.dumps(site))
-        for name in ("posts", "media"):
-            shutil.rmtree(PREVIEW / name, ignore_errors=True)
-            (PREVIEW / name).mkdir()
-        for f in (SITE / "posts").glob("*.md"):
-            if f != path:
-                (PREVIEW / "posts" / f.name).symlink_to(f)
-        for d in (SITE / "media").iterdir():
-            (PREVIEW / "media" / d.name).symlink_to(d)
+        out = PREVIEW / "out"
+        full = full or not (out / slug / "index.html").is_file()
+        if full:
+            PREVIEW.mkdir(parents=True, exist_ok=True)
+            for name in ("templates", "static", "pages", "card-fonts"):
+                link = PREVIEW / name
+                # Relinked when it points anywhere else (it pointed at ops/jpain.io until 2026-11-02).
+                if not (link.is_symlink() and link.readlink() == SITE / name):
+                    if link.is_dir() and not link.is_symlink():
+                        shutil.rmtree(link)
+                    else:
+                        link.unlink(missing_ok=True)
+                    link.symlink_to(SITE / name)
+            site = json.loads((SITE / "site.json").read_text())
+            site["mounts"] = {k: str((SITE / v).resolve()) for k, v in site.get("mounts", {}).items()}
+            (PREVIEW / "site.json").write_text(json.dumps(site))
+            for name in ("posts", "media"):
+                shutil.rmtree(PREVIEW / name, ignore_errors=True)
+                (PREVIEW / name).mkdir()
+            for f in (SITE / "posts").glob("*.md"):
+                if f != path:
+                    (PREVIEW / "posts" / f.name).symlink_to(f)
+            for d in (SITE / "media").iterdir():
+                (PREVIEW / "media" / d.name).symlink_to(d)
         media = media_for(path, text)
         target = PREVIEW / "media" / slug
         if target.is_symlink():
@@ -172,11 +194,24 @@ def preview(rel, text):
         if mine.is_symlink():
             mine.unlink()
         mine.write_text(text)
-        code, log = run([PY, str(ENGINE), "--site", str(PREVIEW)])
-        if code:
-            return {"ok": False, "built": False, "message": plain(log.splitlines()[-1]) if log else "build failed"}
-        code, log = run([PY, str(ENGINE), "--site", str(PREVIEW), "--check", str(mine)])
-        return {"ok": code == 0, "built": True, "slug": slug, "message": plain(log)}
+        b = engine()
+        log = io.StringIO()
+        try:
+            with contextlib.redirect_stdout(log):
+                b.use_site(PREVIEW)
+                b.build() if full else b.build_one(mine)
+        except SystemExit as e:
+            return {"ok": False, "built": False, "message": plain(str(e.code or "build failed"))}
+        except Exception as e:                   # a bug in build.py must not take the editor down
+            return {"ok": False, "built": False, "message": f"build failed: {e!r}"}
+        log = io.StringIO()
+        try:
+            with contextlib.redirect_stdout(log):
+                b.check([str(mine)])
+            ok, msg = True, log.getvalue()
+        except SystemExit as e:
+            ok, msg = False, str(e.code)
+        return {"ok": ok, "built": True, "slug": slug, "full": full, "message": plain(msg)}
 
 
 FRIENDLY = {"missing header key 'summary'": "Add a meta_description: line, the one-line summary for lists, feeds and search.",
@@ -206,31 +241,67 @@ def publish(rel):
                 "reason": "" if code == 0 else plain(log.splitlines()[-1] if log else "")}
 
 
-def upload(rel, name, data):
+# The file you uploaded, kept outside the site so an image can be re-encoded (photo or screenshot)
+# from the original rather than from an already-compressed copy. Not published, not in git.
+ORIGINALS = Path(os.environ.get("EDITOR_ORIGINALS", "/mnt/work/cache/jpain-editor-originals"))
+MAX_W = 1600          # twice the text column (about 760 px), for high-density screens
+MAX_KB = 290          # the build refuses images over 300 KB
+
+
+def encode(data, mode):
+    """WebP bytes, the mode used and the size, from an uploaded file.
+
+    photo: lossy, quality 80 (lower only if needed to stay under MAX_KB): the smallest file.
+    screenshot: lossless if that fits under MAX_KB, else lossy at a high quality, so text and
+    hard edges stay crisp. auto: screenshot for PNG, GIF and BMP sources, photo otherwise."""
+    im = Image.open(io.BytesIO(data))
+    im.load()
+    if mode == "auto":
+        mode = "screenshot" if im.format in ("PNG", "GIF", "BMP") else "photo"
+    im = ImageOps.exif_transpose(im)             # phone photos: turn them the right way up first
+    im = im.convert("RGBA" if im.mode in ("RGBA", "LA", "P") and ("transparency" in im.info or im.mode != "P") else "RGB")
+    if im.width > MAX_W:
+        im = im.resize((MAX_W, round(im.height * MAX_W / im.width)), Image.LANCZOS)
+    clean = Image.new(im.mode, im.size)          # a fresh image carries no EXIF, GPS or profile
+    clean.paste(im)
+    tries = ([{"lossless": True, "quality": 80, "method": 4}] + [{"quality": q, "method": 6} for q in (92, 88, 84, 80)]
+             if mode == "screenshot" else [{"quality": q, "method": 6} for q in (80, 72, 64, 56)])
+    for opts in tries:
+        buf = io.BytesIO()
+        clean.save(buf, "WEBP", **opts)
+        if buf.tell() <= MAX_KB * 1024:
+            break
+    return buf.getvalue(), mode, clean.size
+
+
+def upload(rel, name, data, mode="auto"):
     path = source(rel)
     text = path.read_text() if path.exists() else ""
     folder = media_for(path, text)
     stem = re.sub(r"[^a-z0-9-]+", "-", Path(name).stem.lower()).strip("-") or "image"
-    im = Image.open(io.BytesIO(data))
-    im.load()
-    im = im.convert("RGBA" if im.mode in ("RGBA", "LA", "P") and ("transparency" in im.info or im.mode != "P") else "RGB")
-    if im.width > 1600:
-        im = im.resize((1600, round(im.height * 1600 / im.width)), Image.LANCZOS)
-    clean = Image.new(im.mode, im.size)          # a fresh image carries no EXIF, GPS or profile
-    clean.paste(im)
+    webp, mode, (w, h) = encode(data, mode)
     folder.mkdir(parents=True, exist_ok=True)
     out = folder / f"{stem}.webp"
     n = 2
     while out.exists():
         out = folder / f"{stem}-{n}.webp"
         n += 1
-    for q in (80, 72, 64, 56):                   # the build allows 300 KB per image
-        buf = io.BytesIO()
-        clean.save(buf, "WEBP", quality=q, method=6)
-        if buf.tell() <= 290 * 1024:
-            break
-    out.write_bytes(buf.getvalue())
-    return {"name": out.name, "kb": round(buf.tell() / 1024), "width": clean.width, "height": clean.height}
+    out.write_bytes(webp)
+    keep = ORIGINALS / folder.name / out.name
+    keep.parent.mkdir(parents=True, exist_ok=True)
+    keep.with_suffix(".orig").write_bytes(data)
+    return {"name": out.name, "kb": round(len(webp) / 1024), "width": w, "height": h, "mode": mode, "original": True}
+
+
+def reencode(rel, name, mode):
+    """Encode an image again from the file that was uploaded, as a photo or a screenshot."""
+    f = media_file(rel, name)
+    orig = (ORIGINALS / f.parent.name / name).with_suffix(".orig")
+    if not orig.is_file():
+        raise ValueError("this image's original isn't kept (it was added before 2 November 2026), so it can't be re-encoded")
+    webp, mode, (w, h) = encode(orig.read_bytes(), mode)
+    f.write_bytes(webp)
+    return {"name": name, "kb": round(len(webp) / 1024), "width": w, "height": h, "mode": mode, "original": True}
 
 
 def media_file(rel, name):
@@ -348,7 +419,8 @@ class Handler(BaseHTTPRequestHandler):
                 folder = media_for(path, path.read_text())
                 files = sorted((f for f in folder.iterdir() if f.is_file()), key=lambda f: f.name) if folder.is_dir() else []
                 return self.send(200, {"files": [f.name for f in files],
-                                       "sizes": {f.name: round(f.stat().st_size / 1024) for f in files}})
+                                       "sizes": {f.name: round(f.stat().st_size / 1024) for f in files},
+                                       "originals": [f.name for f in files if (ORIGINALS / folder.name / f.name).with_suffix(".orig").is_file()]})
             if p == "/_api/media/file":
                 q = self.query()
                 return self.static(media_file(q.get("path"), q.get("name")).parent, q.get("name"))
@@ -370,7 +442,9 @@ class Handler(BaseHTTPRequestHandler):
             if urllib.parse.urlsplit(self.path).path != "/_api/media":
                 return self.send(404, {"error": "no such endpoint"})
             q = self.query()
-            media_file(q.get("path"), q.get("name")).unlink()
+            f = media_file(q.get("path"), q.get("name"))
+            f.unlink()
+            (ORIGINALS / f.parent.name / f.name).with_suffix(".orig").unlink(missing_ok=True)
             return self.send(200, {"deleted": q.get("name")})
         except (ValueError, FileNotFoundError) as e:
             return self.send(400, {"error": str(e)})
@@ -399,12 +473,14 @@ class Handler(BaseHTTPRequestHandler):
         try:
             if p == "/_api/upload":
                 q = self.query()
-                return self.send(200, upload(q.get("path"), q.get("name", "image"), self.body()))
+                return self.send(200, upload(q.get("path"), q.get("name", "image"), self.body(), q.get("mode", "auto")))
             req = json.loads(self.body() or b"{}")
+            if p == "/_api/reencode":
+                return self.send(200, reencode(req.get("path"), req.get("name"), req.get("mode", "photo")))
             if p == "/_api/youtube":
                 return self.send(200, add_video(req.get("path"), req.get("url")))
             if p == "/_api/preview":
-                return self.send(200, preview(req["path"], req["text"]))
+                return self.send(200, preview(req["path"], req["text"], req.get("full", True)))
             if p == "/_api/publish":
                 return self.send(200, publish(req["path"]))
             if p == "/_api/new":

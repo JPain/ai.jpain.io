@@ -6,6 +6,7 @@ const text = $("text"), frame = $("frame"), main = $("main");
 let cur = null;          // {path, hash, slug, saved}: the open file and its text as last saved
 let list = [];
 let previewTimer = 0, previewSeq = 0, previewSlug = "";
+let needFull = true;     // the next preview rebuilds the whole site (after opening or saving a post)
 
 const api = async (method, url, body, raw) => {
   const opts = { method, headers: { "X-Editor": "1" } };
@@ -122,7 +123,7 @@ async function loadList() {
     if (cur && cur.path === p.path) b.setAttribute("aria-current", "true");
     b.textContent = p.title;
     const small = document.createElement("small");
-    small.textContent = [p.date || (p.kind === "drafts" ? "draft" : ""), p.hidden ? "hidden" : ""].filter(Boolean).join(" · ");
+    small.textContent = [p.kind === "drafts" ? "edited " + when(p.edited) : p.date, p.hidden ? "hidden" : ""].filter(Boolean).join(" · ");
     if (p.unpublished) { const m = document.createElement("span"); m.className = "mark"; m.textContent = " · not yet live"; small.append(m); }
     b.append(small);
     b.addEventListener("click", () => openFile(p.path));
@@ -132,6 +133,13 @@ async function loadList() {
   $("drafts").replaceChildren(...list.filter((p) => p.kind === "drafts").map(make));
   $("posts").replaceChildren(...list.filter((p) => p.kind === "posts").map(make));
   refreshState();
+}
+
+// "13:25" today, "2 Nov" this year, "2 Nov 2025" before.
+function when(sec) {
+  const d = new Date(sec * 1000), now = new Date();
+  if (d.toDateString() === now.toDateString()) return d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  return d.toLocaleDateString("en-GB", d.getFullYear() === now.getFullYear() ? { day: "numeric", month: "short" } : { day: "numeric", month: "short", year: "numeric" });
 }
 
 // ---------------------------------------------------------------- open / save
@@ -166,6 +174,7 @@ async function openFile(path) {
   live.hidden = !path.startsWith("posts/");
   live.href = "https://jpain.io/" + slugOf(text.value, path) + "/";
   previewSlug = "";
+  needFull = true;
   frame.removeAttribute("src");
   document.querySelectorAll(".files button").forEach((btn) => {
     if (btn.dataset.path === path) btn.setAttribute("aria-current", "true"); else btn.removeAttribute("aria-current");
@@ -201,6 +210,7 @@ async function save(force) {
   }
   cur.hash = r.data.hash;
   cur.saved = body.text;
+  needFull = true;          // lists, tags and the home page catch up with the saved text
   store.del(backupKey(cur.path));
   const entry = list.find((p) => p.path === cur.path);
   if (entry) entry.unpublished = r.data.unpublished;
@@ -236,20 +246,26 @@ async function publish() {
 // ---------------------------------------------------------------- preview
 function schedulePreview(delay) {
   clearTimeout(previewTimer);
-  previewTimer = setTimeout(runPreview, delay === undefined ? 600 : delay);
+  previewTimer = setTimeout(runPreview, delay === undefined ? 250 : delay);
 }
+// While you type, the server re-renders only this post (about a tenth of a second); a full build
+// runs when a post is opened or saved, so the home page and lists catch up then.
 async function runPreview() {
   if (!cur) return;
   const seq = ++previewSeq;
+  const full = needFull;
+  needFull = false;
   let r;
-  try { r = (await api("POST", "/_api/preview", { path: cur.path, text: text.value })).data; }
-  catch (e) { r = { ok: false, built: false, message: e.message }; }
+  try { r = (await api("POST", "/_api/preview", { path: cur.path, text: text.value, full })).data; }
+  catch (e) { r = { ok: false, built: false, message: e.message }; needFull = needFull || full; }
   if (seq !== previewSeq) return;
   const c = $("checks");
   c.className = "checks " + (r.ok ? "ok" : "bad");
   c.textContent = r.ok ? "Checks pass" : r.message;
   if (!r.built) return;
   const url = `/${r.slug}/`;
+  if (previewSlug === r.slug && await swapPreview(url, seq)) return;
+  if (seq !== previewSeq) return;
   let y = 0;
   try { if (previewSlug === r.slug) y = frame.contentWindow.scrollY; } catch { /* not loaded yet */ }
   frame.addEventListener("load", () => { try { frame.contentWindow.scrollTo(0, y); } catch { /* ignore */ } }, { once: true });
@@ -259,6 +275,27 @@ async function runPreview() {
     frame.src = url + "?v=" + seq;
   }
   previewSlug = r.slug;
+}
+
+// Put the new page's <main> into the preview in place: no reload and no flash, the scroll stays
+// where it is, and images already shown aren't fetched again. A page whose stylesheets or
+// scripts changed, or that has a live demo (its script would need to run again), reloads instead.
+async function swapPreview(url, seq) {
+  let doc;
+  try { doc = frame.contentDocument; } catch { return false; }
+  if (!doc || doc.readyState !== "complete" || !doc.querySelector("main")) return false;
+  let html;
+  try { html = await (await fetch(url + "?v=" + seq, { cache: "no-store" })).text(); } catch { return false; }
+  if (seq !== previewSeq) return true;         // a newer preview is on its way
+  const next = new DOMParser().parseFromString(html, "text/html");
+  const assets = (d) => [...d.querySelectorAll("link[rel=stylesheet], script[src]")].map((e) => e.getAttribute("href") || e.getAttribute("src")).join("|");
+  const demo = [...next.querySelectorAll("main script[src]")].some((e) => e.getAttribute("src") !== "/youtube.js");
+  if (demo || !next.querySelector("main") || assets(next) !== assets(doc)) return false;
+  const main = doc.importNode(next.querySelector("main"), true);
+  main.querySelectorAll("script").forEach((e) => e.remove());   // youtube.js is loaded already
+  doc.querySelector("main").replaceWith(main);
+  doc.title = next.title;
+  return true;
 }
 
 // ---------------------------------------------------------------- editing helpers
@@ -446,7 +483,8 @@ async function loadMedia() {
   box.hidden = !cur;
   if (!cur) return;
   const r = (await api("GET", "/_api/media?path=" + encodeURIComponent(cur.path))).data;
-  mediaFiles = r.files.filter((f) => IMAGE.test(f)).map((f) => ({ name: f, kb: r.sizes[f] }));
+  mediaFiles = r.files.filter((f) => IMAGE.test(f)).map((f) => ({ name: f, kb: r.sizes[f], original: (r.originals || []).includes(f) }));
+  $("media-count").textContent = mediaFiles.length ? `(${mediaFiles.length})` : "";
   $("media").replaceChildren(...mediaFiles.map(({ name, kb }) => {
     const li = document.createElement("li");
     const btn = document.createElement("button");
@@ -497,24 +535,78 @@ async function deleteMedia(name) {
   schedulePreview(0);
 }
 
-// Alt text is asked for every time: the checks fail without it.
+// A row of radio buttons for a dialog: choices are [value, label, hint].
+function radios(legend, name, choices, value) {
+  const fs = document.createElement("fieldset");
+  fs.className = "choice";
+  const lg = document.createElement("legend");
+  lg.textContent = legend;
+  fs.append(lg);
+  for (const [v, label, hint] of choices) {
+    const l = document.createElement("label");
+    const i = document.createElement("input");
+    i.type = "radio"; i.name = name; i.value = v; i.checked = v === value;
+    const t = document.createElement("span");
+    t.innerHTML = `<b></b><small></small>`;
+    t.querySelector("b").textContent = label;
+    t.querySelector("small").textContent = hint || "";
+    l.append(i, t);
+    fs.append(l);
+  }
+  fs.value = () => (fs.querySelector("input:checked") || {}).value;
+  return fs;
+}
+
+// Alt text is asked for every time: the checks fail without it. The compression can be switched
+// here (re-encoded from the uploaded original), and the image can sit narrower than the column.
 async function imageDialog(name, info) {
+  const known = mediaFiles.find((f) => f.name === name) || {};
+  let st = info ? { ...info } : { kb: known.kb, original: known.original };
+  let bust = 0;
   const img = document.createElement("img");
   img.className = "dlg-img";
-  img.src = mediaUrl(name, info ? info.kb : (mediaFiles.find((f) => f.name === name) || {}).kb);
   img.alt = "";
+  const note = document.createElement("p");
+  note.className = "hint";
+  const show = () => {
+    img.src = mediaUrl(name, `${st.kb}-${bust}`);
+    note.textContent = `${name}: ${st.width ? `${st.width}×${st.height}, ` : ""}${st.kb} KB${st.mode ? `, encoded as a ${st.mode}` : ""}.`;
+  };
+  show();
+  const kind = radios("Compression", "kind", [
+    ["photo", "Photo", "Smallest file. Right for photos and game footage."],
+    ["screenshot", "Screenshot or text", "Sharper text and edges. Often smaller too, for screens and diagrams."],
+  ], st.mode);
+  if (!st.original) {
+    kind.querySelectorAll("input").forEach((i) => { i.disabled = true; });
+    const h = document.createElement("small");
+    h.className = "choice-note";
+    h.textContent = "Only images added from 2 November 2026 keep their original, so this one can't be re-encoded.";
+    kind.append(h);
+  }
+  kind.addEventListener("change", async () => {
+    note.textContent = "Encoding…";
+    try {
+      st = (await api("POST", "/_api/reencode", { path: cur.path, name, mode: kind.value() })).data;
+      bust++;
+      show();
+      loadMedia();
+      schedulePreview(0);
+    } catch (e) { note.textContent = "Couldn't re-encode it: " + e.message; }
+  });
+  const width = radios("Width on the page", "width", [
+    ["full", "Full width", ""],
+    ["narrow", "Narrow", "For tall phone screenshots and small images."],
+  ], "full");
   const alt = field("Alt text", "textarea", { rows: 2, placeholder: "What the image shows",
     hint: "Read out to people who can't see it, and shown if it doesn't load. Required." });
   const cap = field("Caption", "input", { placeholder: "Optional", hint: "Shown under the image." });
-  const note = document.createElement("p");
-  note.className = "hint";
-  note.textContent = info ? `Added ${name}: ${info.width}×${info.height}, ${info.kb} KB, metadata removed.` : name;
-  const v = await ask("Insert image", group(img, note, alt, cap), [["Cancel", "cancel"], ["Insert", "ok", "primary"]], "",
+  const v = await ask("Insert image", group(img, note, kind, width, alt, cap), [["Cancel", "cancel"], ["Insert", "ok", "primary"]], "",
     { validate: () => alt.input.value.trim() ? "" : "Write the alt text first." });
   if (v !== "ok") { text.focus(); return; }
   const a = alt.input.value.trim().replace(/\s+/g, " ");
   const c = cap.input.value.trim();
-  insert(`![${mdText(a)}](${name}${c ? mdTitle(c) : ""})`);
+  insert(`![${mdText(a)}](${name}${c ? mdTitle(c) : ""})${width.value() === "narrow" ? "{.narrow}" : ""}`);
 }
 
 // The upload lands in the folder of the saved slug, so unsaved changes are saved first.
@@ -637,6 +729,22 @@ $("new").addEventListener("click", async () => {
     text.setSelectionRange(text.value.length, text.value.length);
   } catch (e) { ask("Couldn't create it", e.message, [["OK", "ok", "primary"]]); }
 });
+
+// ---------------------------------------------------------------- sidebar
+function setSide(show) {
+  document.body.classList.toggle("no-side", !show);
+  const b = $("side-toggle");
+  b.setAttribute("aria-expanded", String(show));
+  b.title = (show ? "Hide" : "Show") + " the sidebar (Ctrl+\\)";
+  store.set("jpain-editor:side", show);
+}
+$("side-toggle").addEventListener("click", () => setSide(document.body.classList.contains("no-side")));
+document.addEventListener("keydown", (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === "\\") { e.preventDefault(); setSide(document.body.classList.contains("no-side")); }
+});
+setSide(store.get("jpain-editor:side") !== false);
+$("media-box").open = store.get("jpain-editor:images-open") !== false;
+$("media-box").addEventListener("toggle", () => store.set("jpain-editor:images-open", $("media-box").open));
 
 (async () => {
   setView(innerWidth <= 700 ? "list" : "write");

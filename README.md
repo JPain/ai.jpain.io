@@ -69,6 +69,14 @@ used if the post shows it, if it shares a name with one the post shows
 (`negotiated.avif` beside `negotiated.jpg`), or if one of the folder's own `.js`, `.css`
 or `.html` files names it.
 
+**Images from the editor:** WebP, at most 1600 px wide (twice the text column, for
+high-density screens), metadata stripped and phone photos turned upright. Two encodings: *photo*
+(lossy, quality 80) and *screenshot* (lossless when it fits under 290 KB, else lossy at 92 down
+to 80); PNG, GIF and BMP uploads start as screenshots, the rest as photos, and the insert dialog
+switches between them by re-encoding from the uploaded original, which is kept in
+`/mnt/work/cache/jpain-editor-originals/<slug>/` (not published, not in git). `{.narrow}` after an
+image caps it at 22rem, for tall phone screenshots.
+
 **YouTube videos:** a link alone in its paragraph, marked `{.youtube}`:
 `[Video title](https://youtu.be/ID "Optional caption"){.youtube}`. It renders as the
 video's thumbnail, `youtube-<ID>.webp` in the post's media folder (the editor saves it;

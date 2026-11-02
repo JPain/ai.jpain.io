@@ -414,6 +414,9 @@ def quote_for(key):
             f'{esc(q["src"])}.</span></p>')
 
 
+_POW = {}   # contact_email()'s answer per address: the search is the slow part of a build
+
+
 def contact_email():
     """The contact address behind a quiet proof-of-work (static/contact.js), never plain text in the HTML.
     The browser hashes "<challenge>:<n>" for n = 0, 1, 2... until a SHA-256 starts with POW_BITS zero
@@ -425,9 +428,10 @@ def contact_email():
     addr = f'{c["user"]}@{c["domain"]}'.encode()
     bits = c.get("pow_bits", 18)
     challenge = hashlib.sha256(f'{SITE["url"]} contact {c["user"]} {c["domain"]}'.encode()).hexdigest()[:16]
-    n = 0
+    n = _POW.get((challenge, bits), 0)
     while int.from_bytes(hashlib.sha256(f"{challenge}:{n}".encode()).digest(), "big") >> (256 - bits):
         n += 1
+    _POW[(challenge, bits)] = n
     key = hashlib.sha256(f"{challenge}:{n}:key".encode()).digest()
     cipher = base64.b64encode(bytes(a ^ k for a, k in zip(addr, key))).decode()
     return (f'<p class="contact">Email: <button type="button" class="pow-start" '
@@ -489,7 +493,14 @@ def card_text(s):
     return re.sub(r"(?<=\w)'", "\u2019", s) if SITE.get("smart_quotes", True) else s
 
 
+# Set by the browser editor's preview, which rebuilds as you type: share cards are slow PNG encodes
+# that no preview shows, so they're skipped there.
+NO_CARDS = False
+
+
 def write_card(rel, title, foot_left="", subtitle=""):
+    if NO_CARDS:
+        return
     cfg = dict(SITE["card"])
     cfg["brand"] = card_text(cfg.get("brand", SITE["title"]))
     domain = SITE["url"].split("://", 1)[1]
@@ -500,6 +511,8 @@ def write_card(rel, title, foot_left="", subtitle=""):
 
 def post_card(p):
     """Draw a post's card unless it names its own meta_image; a WebP/AVIF meta_image gets a JPEG copy."""
+    if NO_CARDS:
+        return
     src = p["media"] / p["image"] if p["image"] and "://" not in p["image"] else None
     if src and src.suffix.lower() in (".webp", ".avif") and src.is_file():
         img = Image.open(src).convert("RGB")
@@ -629,6 +642,65 @@ def write(rel, content, image_bytes=0):
     p.write_text(content)
 
 
+def render_post(p, base, post_t, listed_tags):
+    """Write one post's page, its Markdown source, its media folder and its share card into OUT."""
+    promoted = ""
+    if p["unlisted"]:
+        promoted += f'<p class="promoted">{esc(SITE.get("archived_note", "This post is archived."))} <a href="/archive/">Archive</a>.</p>'
+
+    # outdated: <note> puts a note under the title of a post that things have overtaken.
+    if p["outdated"]:
+        promoted += f'<p class="promoted">{esc(p["outdated"])}</p>'
+    # Every AI post says so under its title, and whether James reviewed it (site.json "ai_note").
+    if by_ai(p) and SITE.get("ai_note"):
+        note = SITE["ai_note"]["reviewed" if p["reviewed"] else "unreviewed"]
+        promoted += f'<p class="promoted ai-note">{esc(note.format(model=p["model"]))} <a href="/about/#ai-attribution">AI attribution</a>.</p>'
+    # A joint post says so too, and who did what (its cowritten: header).
+    if cowritten(p) and SITE.get("ai_note"):
+        note = SITE["ai_note"]["cowritten"].format(model=p["model"], cowritten=p["cowritten"])
+        promoted += f'<p class="promoted ai-note">{esc(note)} <a href="/about/#ai-attribution">AI attribution</a>.</p>'
+    body = render(
+        post_t,
+        title=esc(p["title"]),
+        date=p["date"].strftime("%-d %B %Y"),
+        iso_date=p["date"].date().isoformat(),
+        slug=p["slug"],
+        tags=tag_links(p["tags"], listed_tags),
+        author=byline(p),
+        promoted=promoted,
+        content=p["html"] + rfc_box(p["rfcs"]),
+    )
+    # Everything in the post's media folder is published beside it: images the
+    # post shows, and the files a live demo needs (.js, .css, .html, data).
+    used = {i["src"] for i in p["images"] if "://" not in i.get("src", "")}
+    img_bytes = 0
+    for name in used:
+        f = p["media"] / name
+        if not f.is_file():
+            sys.exit(f"{p['source']}: image {name} not found in {p['media']}")
+        img_bytes += f.stat().st_size
+    if p["media"].is_dir():
+        shutil.copytree(p["media"], OUT / p["slug"], dirs_exist_ok=True)
+    post_card(p)
+    write(f"{p['slug']}/index.html", page_shell(base, p["title"], body, p["description"], post_meta(p), key=p["slug"], author=page_author(p)), img_bytes)
+    if SITE.get("markdown_source"):
+        write(f"{p['slug']}/index.md", p["raw"])
+
+
+def build_one(path):
+    """Re-render one post into the out/ of the last full build (the editor's preview while you
+    type). Lists, tags, feeds and other pages stay as that build left them."""
+    p = parse(Path(path))
+    listed_tags = set()
+    for f in (ROOT / "posts").glob("*.md"):
+        head, _ = split_header(f.read_text())
+        meta = {k.strip().lower(): v.strip() for k, v in (l.split(":", 1) for l in head.splitlines() if ":" in l)}
+        if meta.get("publish", "true").lower() != "false" and meta.get("unlisted", "").lower() not in ("true", "yes"):
+            listed_tags |= {tag_slug(t) for t in meta.get("tags", "").split(",") if t.strip()}
+    render_post(p, read_template("base.html"), read_template("post.html"), listed_tags)
+    return p["slug"]
+
+
 def build():
     if OUT.exists():
         shutil.rmtree(OUT)
@@ -655,47 +727,7 @@ def build():
 
     # posts
     for p in posts:
-        promoted = ""
-        if p["unlisted"]:
-            promoted += f'<p class="promoted">{esc(SITE.get("archived_note", "This post is archived."))} <a href="/archive/">Archive</a>.</p>'
-
-        # outdated: <note> puts a note under the title of a post that things have overtaken.
-        if p["outdated"]:
-            promoted += f'<p class="promoted">{esc(p["outdated"])}</p>'
-        # Every AI post says so under its title, and whether James reviewed it (site.json "ai_note").
-        if by_ai(p) and SITE.get("ai_note"):
-            note = SITE["ai_note"]["reviewed" if p["reviewed"] else "unreviewed"]
-            promoted += f'<p class="promoted ai-note">{esc(note.format(model=p["model"]))} <a href="/about/#ai-attribution">AI attribution</a>.</p>'
-        # A joint post says so too, and who did what (its cowritten: header).
-        if cowritten(p) and SITE.get("ai_note"):
-            note = SITE["ai_note"]["cowritten"].format(model=p["model"], cowritten=p["cowritten"])
-            promoted += f'<p class="promoted ai-note">{esc(note)} <a href="/about/#ai-attribution">AI attribution</a>.</p>'
-        body = render(
-            post_t,
-            title=esc(p["title"]),
-            date=p["date"].strftime("%-d %B %Y"),
-            iso_date=p["date"].date().isoformat(),
-            slug=p["slug"],
-            tags=tag_links(p["tags"], listed_tags),
-            author=byline(p),
-            promoted=promoted,
-            content=p["html"] + rfc_box(p["rfcs"]),
-        )
-        # Everything in the post's media folder is published beside it: images the
-        # post shows, and the files a live demo needs (.js, .css, .html, data).
-        used = {i["src"] for i in p["images"] if "://" not in i.get("src", "")}
-        img_bytes = 0
-        for name in used:
-            f = p["media"] / name
-            if not f.is_file():
-                sys.exit(f"{p['source']}: image {name} not found in {p['media']}")
-            img_bytes += f.stat().st_size
-        if p["media"].is_dir():
-            shutil.copytree(p["media"], OUT / p["slug"], dirs_exist_ok=True)
-        post_card(p)
-        write(f"{p['slug']}/index.html", page_shell(base, p["title"], body, p["description"], post_meta(p), key=p["slug"], author=page_author(p)), img_bytes)
-        if SITE.get("markdown_source"):
-            write(f"{p['slug']}/index.md", p["raw"])
+        render_post(p, base, post_t, listed_tags)
 
     # "mounts": {"chroma-subsampling/lab": "../compression-lab/docs"} publishes another
     # project's built pages inside this site, straight from its own repo. A mount inside a post's

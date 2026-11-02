@@ -11,6 +11,10 @@
 </head>
 <body>
 <header class="bar">
+  <button type="button" class="side-toggle" id="side-toggle" aria-controls="side" aria-expanded="true" title="Hide the sidebar (Ctrl+\)">
+    <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="3.5" width="15" height="13" rx="1.5"/><path d="M7.5 3.5v13"/></svg>
+    <span class="vh">Sidebar</span>
+  </button>
   <span class="wordmark">jpain.io <b>editor</b></span>
   <span class="doc" id="doc">No post open</span>
   <span class="state" id="state"></span>
@@ -27,14 +31,14 @@
 </header>
 
 <main id="main" data-view="write">
-  <aside class="side">
+  <aside class="side" id="side">
     <button type="button" class="btn wide" id="new">+ New post</button>
-    <section id="media-box" hidden>
-      <h2>Images in this post</h2>
+    <details id="media-box" hidden open>
+      <summary><h2>Images in this post <span id="media-count"></span></h2></summary>
       <p class="hint">Click one to insert it. You can also drop or paste images into the text.</p>
       <ul id="media" class="media"></ul>
       <label class="btn wide">Add image…<input type="file" id="upload" accept="image/*" hidden multiple></label>
-    </section>
+    </details>
     <h2>Drafts</h2>
     <ul id="drafts" class="files"></ul>
     <h2>Posts</h2>
@@ -98,8 +102,10 @@
     <tr><td><code>- item</code>, <code>1. item</code></td><td>Lists. Enter continues one, Enter on an empty item ends it</td></tr>
     <tr><td><code>&gt; text</code></td><td>Quote</td></tr>
     <tr><td><code>![alt](name.webp "Caption")</code></td><td>Image: alt text is required, the caption is optional</td></tr>
+    <tr><td><code>![alt](name.webp){.narrow}</code></td><td>An image narrower than the column, for tall phone screenshots</td></tr>
     <tr><td><code>[Title](https://youtu.be/…){.youtube}</code></td><td>YouTube video. Nothing loads from YouTube until a reader presses play</td></tr>
     <tr><td><code>---</code></td><td>Divider, with a blank line either side</td></tr>
+    <tr><td>Ctrl+\</td><td>Hide or show the sidebar</td></tr>
   </table>
 </template>
 </body>

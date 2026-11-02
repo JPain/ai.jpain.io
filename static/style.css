@@ -101,6 +101,8 @@ figure img, figure video { display: block; }
 figcaption { color: var(--muted); font-size: .88rem; font-style: italic; margin-top: .4rem; }
 figcaption::before { content: "Figure " counter(fig) ". "; font-style: normal; font-weight: 700; color: var(--ink); }
 img.pixel { image-rendering: pixelated; }
+/* ![alt](x.webp){.narrow}: tall phone screenshots and small images, not stretched to the column. */
+img.narrow { width: auto; max-width: min(100%, 22rem); }
 
 footer { margin-top: 3.5rem; padding-top: 1rem; border-top: 1px solid var(--rule); color: var(--muted); font-size: .88rem; }
 footer a, footer a:visited { color: var(--muted); }
