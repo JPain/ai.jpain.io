@@ -87,10 +87,18 @@ th { border-bottom-color: var(--fg); }
 .table-scroll { overflow-x: auto; margin: 1.2rem 0; }
 .table-scroll > table { margin: 0; }
 code { font-family: var(--font-mono); font-size: .86em; background: var(--code); padding: .05rem .25rem; }
-pre { background: var(--code); padding: .8rem 1rem; overflow-x: auto; line-height: 1.45; }
-pre code { background: none; padding: 0; font-size: .82rem; }
+/* Code blocks: light text on a near-black panel in both colour schemes, like a terminal (James,
+   2026-11-02). Syntax colours are in highlight.css. A terminal session (```console, or a block
+   whose first line starts with "$ ", build.py terminal_fences) shows its prompt in the ink blue
+   and its output as plain text. */
+pre { background: #16181d; color: #e6edf3; padding: 1rem 1.2rem; overflow-x: auto; font-size: .8rem; line-height: 1.6; border-radius: 3px; }
+pre code { background: none; color: inherit; padding: 0; font-size: 1em; }
+.hl { margin: 1.4rem 0; }
 .hl pre { margin: 0; }
+div.hl .gp { color: #6fbbea; font-weight: 400; user-select: none; }   /* the "$ ": not copied */
+div.hl .go { color: #e6edf3; }
 pre.ascii { font-size: .8rem; line-height: 1.4; }
+@media (prefers-color-scheme: dark) { pre { background: #1c1f26; box-shadow: inset 0 0 0 1px #2b2f38; } }
 blockquote { position: relative; margin: 1.2rem 0 1.2rem 1.4rem; padding: 0; font-style: italic; }
 blockquote::before { content: "\201C"; position: absolute; left: -.75em; top: -.2em; font-size: 2.4rem; line-height: 1; color: var(--ink); font-style: normal; }
 hr { border: 0; border-top: 1px solid var(--rule); margin: 2rem 0; }
@@ -147,6 +155,10 @@ button.pow-start { font: inherit; color: var(--link); background: none; border: 
   ul.posts li { grid-template-columns: var(--gutter) 4.4rem minmax(0, 1fr); margin-left: calc(-1 * var(--gutter)); }
   ul.posts li::before { text-align: right; padding-right: 1.8rem; }
   ul.posts li.new-year:not(:first-child) { border-top: 0; padding-top: 0; }
+  /* A code block wider than the column grows into the empty space on the right, up to the
+     window's edge (body margin + padding + margin on the left, 2rem spare on the right). */
+  .e-content div.hl { width: max-content; min-width: 100%;
+    max-width: calc(100vw - clamp(0rem, 10vw - 4rem, 7rem) - 1.1rem - var(--gutter) - 2rem); }
 }
 @media (max-width: 52rem) { blockquote::before { left: -.6em; } }
 /* Phones: one column; the year becomes a small heading over its posts. */
@@ -168,7 +180,8 @@ button.pow-start { font: inherit; color: var(--link); background: none; border: 
   .meta { float: none; width: auto; margin: 0 0 1rem; text-align: left; }
   a, h1, h2, h3, .site-title { color: #000; }
   .e-content a[href^="http"]::after { content: " (" attr(href) ")"; font-size: .85em; word-break: break-all; }
-  pre, code { background: none; border: 1px solid #ccc; }
+  pre, code { background: none; color: #000; border: 1px solid #ccc; box-shadow: none; }
+  div.hl .gp, div.hl .go { color: #000; }
   pre { white-space: pre-wrap; }
   pre, figure, table, img { break-inside: avoid; }
   h1, h2, h3 { break-after: avoid; }

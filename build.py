@@ -172,6 +172,24 @@ def absolute_images(html_text, slug):
     return re.sub(r'\b(src|href|poster)="(?![a-z][a-z0-9+.-]*:|#|//)([^"]+)"', fix, html_text)
 
 
+def terminal_fences(body):
+    """A fenced block with no language whose first line starts with "$ " is a terminal session:
+    label it console, so Pygments marks the prompt (.gp) and the output (.go)."""
+    out, fence = [], None
+    lines = body.split("\n")
+    for i, line in enumerate(lines):
+        m = re.match(r"^(\s{0,3})(`{3,}|~{3,})\s*(\S*)", line)
+        if m and fence is None:
+            fence = m.group(2)
+            nxt = next((l for l in lines[i + 1:] if l.strip()), "")
+            if not m.group(3) and nxt.lstrip().startswith("$ "):
+                line = f"{m.group(1)}{m.group(2)}console"
+        elif m and fence and m.group(2).startswith(fence[0]) and len(m.group(2)) >= len(fence) and not m.group(3):
+            fence = None
+        out.append(line)
+    return "\n".join(out)
+
+
 MD_EXTENSIONS = ["tables", "fenced_code", "codehilite", "toc", "smarty", "attr_list"]
 MD_CONFIG = {"codehilite": {"css_class": "hl", "guess_lang": False}}
 
@@ -290,7 +308,7 @@ def parse(path):
     md = markdown.Markdown(extensions=exts, extension_configs=MD_CONFIG)
     words = len(re.findall(r"\S+", body))
     folder = media_dir(path, slug)
-    raw_html = youtube_embeds(md.convert(bear_markdown(body) if typing.get("bear_markdown") else body))
+    raw_html = youtube_embeds(md.convert(terminal_fences(bear_markdown(body) if typing.get("bear_markdown") else body)))
     return {
         "media": folder,
         "images": images_in(raw_html),

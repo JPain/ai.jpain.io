@@ -78,6 +78,13 @@ footage), always under 290 KB. James asked for no compression choices, only size
 `static/lightbox.js`: click a plain Markdown image shown smaller than its file to see it larger
 (demo figures, which have a class, and links are left alone).
 
+**Code blocks:** light text on a near-black panel in both colour schemes (James' ask
+2026-11-02, after a terminal-style screenshot he liked, minus its window decorations); syntax
+colours are Pygments "github-dark" in `static/highlight.css`. A fence with no language whose first
+line starts with `$ ` becomes `console` (build.py `terminal_fences()`): the prompt shows in the ink
+blue and isn't copied with the text. On wide screens a block wider than the column extends into
+the space on the right.
+
 **YouTube videos:** a link alone in its paragraph, marked `{.youtube}`:
 `[Video title](https://youtu.be/ID "Optional caption"){.youtube}`. It renders as the
 video's thumbnail, `youtube-<ID>.webp` in the post's media folder (the editor saves it;
