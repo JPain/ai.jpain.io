@@ -68,6 +68,13 @@ used if the post shows it, if it shares a name with one the post shows
 (`negotiated.avif` beside `negotiated.jpg`), or if one of the folder's own `.js`, `.css`
 or `.html` files names it.
 
+**YouTube videos:** a link alone in its paragraph, marked `{.youtube}`:
+`[Video title](https://youtu.be/ID "Optional caption"){.youtube}`. It renders as the
+video's thumbnail, `youtube-<ID>.webp` in the post's media folder (the editor saves it;
+by hand, `tools/youtube.py posts/x.md`), with a play button. Nothing loads from YouTube
+until a reader presses play; `static/youtube.js` then swaps in a youtube-nocookie.com
+player, which the CSP's `frame-src` allows. Feeds and no-JS readers get a link.
+
 ## Writing and publishing
 
 - **James' posts** use front matter between `---` lines (Bear's export format), with no
