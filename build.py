@@ -120,6 +120,48 @@ def figures(html_text, folder):
     return re.sub(r'<img (?![^>]*loading=)([^>]*)>', lambda m: tag(m), out)
 
 
+# A YouTube video: a link alone in its paragraph, marked {.youtube}:
+#   [Video title](https://youtu.be/ID "Optional caption"){.youtube}
+# It renders as the video's thumbnail (youtube-<ID>.webp in the post's media folder, saved by the
+# editor or tools/youtube.py) with a play button. Nothing loads from YouTube until a reader presses
+# play; static/youtube.js then swaps in a youtube-nocookie.com player. Without JavaScript, and in
+# feeds, it stays a link to the video.
+YT_P = re.compile(r'<p><a ([^>]*\bclass="youtube"[^>]*)>(.*?)</a></p>', re.S)
+YT_ID = re.compile(r'(?:youtu\.be/|youtube(?:-nocookie)?\.com/(?:watch\?(?:.*&)?v=|shorts/|embed/|live/))([\w-]{11})')
+
+
+def youtube_ref(url):
+    """(video id, start second) from any YouTube address, or (None, 0)."""
+    url = html.unescape(url)
+    m = YT_ID.search(url)
+    if not m:
+        return None, 0
+    t = re.search(r'[?&#](?:t|start)=(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s?)?', url)
+    start = sum(int(n or 0) * k for n, k in zip(t.groups(), (3600, 60, 1))) if t else 0
+    return m.group(1), start
+
+
+def youtube_embeds(html_text):
+    def embed(m):
+        a = dict(ATTR.findall(m.group(1)))
+        vid, start = youtube_ref(a.get("href", ""))
+        if not vid:
+            return m.group(0)
+        title = html.escape(html.unescape(re.sub(r"<[^>]+>", "", m.group(2))).strip() or "YouTube video")
+        cap = f'<figcaption>{a["title"]}</figcaption>' if a.get("title") else ""
+        href = f"https://www.youtube.com/watch?v={vid}" + (f"&amp;t={start}s" if start else "")
+        return (f'<figure class="youtube"><a class="yt" href="{href}" data-yt="{vid}" data-start="{start}" '
+                f'data-title="{title}" aria-label="Play video: {title}">'
+                f'<img src="youtube-{vid}.webp" alt="{title}">'
+                f'<span class="yt-title" aria-hidden="true">{title}</span>'
+                '<svg class="yt-play" viewBox="0 0 68 48" aria-hidden="true"><path class="yt-bg" d="M66.5 7.7c-.8-2.9-3-5.2-5.9-6C55.3.3 34 .3 34 .3s-21.3 0-26.6 1.4c-2.9.8-5.1 3.1-5.9 6C.1 13 .1 24 .1 24s0 11 1.4 16.3c.8 2.9 3 5.2 5.9 6C12.7 47.7 34 47.7 34 47.7s21.3 0 26.6-1.4c2.9-.8 5.1-3.1 5.9-6C67.9 35 67.9 24 67.9 24s0-11-1.4-16.3z"/><path fill="#fff" d="M45 24 27 14v20z"/></svg>'
+                f'</a>{cap}</figure>')
+    out = YT_P.sub(embed, html_text)
+    if out != html_text and 'src="/youtube.js"' not in out:
+        out += '\n<script src="/youtube.js" defer></script>'
+    return out
+
+
 def absolute_images(html_text, slug):
     """Feeds are read out of context, so image and link paths must be absolute there. A demo's
     <script> and <link rel=stylesheet> are dropped: feed readers strip them anyway."""
@@ -248,7 +290,7 @@ def parse(path):
     md = markdown.Markdown(extensions=exts, extension_configs=MD_CONFIG)
     words = len(re.findall(r"\S+", body))
     folder = media_dir(path, slug)
-    raw_html = md.convert(bear_markdown(body) if typing.get("bear_markdown") else body)
+    raw_html = youtube_embeds(md.convert(bear_markdown(body) if typing.get("bear_markdown") else body))
     return {
         "media": folder,
         "images": images_in(raw_html),
@@ -867,7 +909,8 @@ def check_images(post):
         if not alt:
             problems.append(f"{src}: missing alt text")
         if not f.is_file():
-            problems.append(f"{src}: not found in {folder.relative_to(ROOT)}/")
+            hint = " (the video's thumbnail: run tools/youtube.py, or reinsert the video in the editor)" if src.startswith("youtube-") else ""
+            problems.append(f"{src}: not found in {folder.relative_to(ROOT)}/{hint}")
             continue
         if f.suffix.lower() not in IMAGE_TYPES:
             problems.append(f"{src}: unsupported type (use webp, png, jpg, svg, gif)")

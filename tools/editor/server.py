@@ -15,8 +15,11 @@ Publish runs ./publish.sh exactly as from a terminal.
   POST /_api/new               {title}: create drafts/<slug>.md
   POST /_api/preview           {path, text}: build the site with this text in place, run the checks
   POST /_api/publish           {path}: ./publish.sh (drafts move to posts/)
-  GET  /_api/media?path=       the post's media files
+  GET  /_api/media?path=       the post's media files, with sizes
+  GET  /_api/media/file?path=&name=  one of them (the editor's thumbnails)
+  DELETE /_api/media?path=&name=     delete one of them, by exact name
   POST /_api/upload?path=&name=  raw image body: stripped, scaled to 1600 px, saved as WebP
+  POST /_api/youtube           {path, url}: the video's id, start and title; saves its thumbnail
   anything else                the last preview build (so /<slug>/, /fonts/... resolve as on the site)
 """
 import argparse
@@ -29,6 +32,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import threading
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -38,6 +42,8 @@ from PIL import Image
 
 HERE = Path(__file__).resolve().parent
 SITE = HERE.parent.parent                      # ops/blog: the engine and the jpain.io site
+sys.path.insert(0, str(SITE / "tools"))
+import youtube  # noqa: E402  (tools/youtube.py: thumbnails and titles)
 ENGINE = SITE / "build.py"
 PY = "/mnt/work/venvs/blog/bin/python"
 PREVIEW = Path(os.environ.get("EDITOR_PREVIEW", "/mnt/work/cache/jpain-editor"))
@@ -138,8 +144,12 @@ def preview(rel, text):
         PREVIEW.mkdir(parents=True, exist_ok=True)
         for name in ("templates", "static", "pages", "quotes.json"):
             link = PREVIEW / name
-            if not link.is_symlink():
-                shutil.rmtree(link, ignore_errors=True) if link.is_dir() else link.unlink(missing_ok=True)
+            # Relinked when it points anywhere else (it pointed at ops/jpain.io until 2026-11-02).
+            if not (link.is_symlink() and link.readlink() == SITE / name):
+                if link.is_dir() and not link.is_symlink():
+                    shutil.rmtree(link)
+                else:
+                    link.unlink(missing_ok=True)
                 link.symlink_to(SITE / name)
         site = json.loads((SITE / "site.json").read_text())
         site["mounts"] = {k: str((SITE / v).resolve()) for k, v in site.get("mounts", {}).items()}
@@ -221,6 +231,31 @@ def upload(rel, name, data):
             break
     out.write_bytes(buf.getvalue())
     return {"name": out.name, "kb": round(buf.tell() / 1024), "width": clean.width, "height": clean.height}
+
+
+def media_file(rel, name):
+    """One file in a post's media folder, by exact name: never a path, never a glob."""
+    path = source(rel)
+    folder = media_for(path, path.read_text() if path.exists() else "")
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", name or "") or ".." in name:
+        raise ValueError(f"bad file name {name!r}")
+    f = folder / name
+    if not f.is_file():
+        raise FileNotFoundError(f"{name} is not in this post's images")
+    return f
+
+
+def add_video(rel, url):
+    path = source(rel)
+    vid, start = youtube.build.youtube_ref(url or "")
+    if not vid:
+        raise ValueError("that isn't a YouTube video address")
+    folder = media_for(path, path.read_text() if path.exists() else "")
+    name = f"youtube-{vid}.webp"
+    if not (folder / name).is_file():
+        youtube.fetch(vid, folder)
+    return {"id": vid, "start": start, "title": youtube.title(vid), "name": name,
+            "kb": round((folder / name).stat().st_size / 1024)}
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -311,8 +346,12 @@ class Handler(BaseHTTPRequestHandler):
             if p == "/_api/media":
                 path = source(self.query().get("path"))
                 folder = media_for(path, path.read_text())
-                files = sorted(f.name for f in folder.iterdir() if f.is_file()) if folder.is_dir() else []
-                return self.send(200, {"files": files})
+                files = sorted((f for f in folder.iterdir() if f.is_file()), key=lambda f: f.name) if folder.is_dir() else []
+                return self.send(200, {"files": [f.name for f in files],
+                                       "sizes": {f.name: round(f.stat().st_size / 1024) for f in files}})
+            if p == "/_api/media/file":
+                q = self.query()
+                return self.static(media_file(q.get("path"), q.get("name")).parent, q.get("name"))
             if p in ("/_edit/editor.js", "/_edit/editor.css"):
                 return self.static(HERE, p[len("/_edit/"):])
             if p == "/" and self.headers.get("Sec-Fetch-Dest") not in ("iframe", "frame"):
@@ -322,6 +361,18 @@ class Handler(BaseHTTPRequestHandler):
             with build_lock:
                 return self.static(PREVIEW / "out", p.lstrip("/"))
         except (ValueError, FileNotFoundError, KeyError) as e:
+            return self.send(400, {"error": str(e)})
+
+    def do_DELETE(self):
+        if not (self.allowed() and self.same_origin()):
+            return self.send(403, {"error": "forbidden"})
+        try:
+            if urllib.parse.urlsplit(self.path).path != "/_api/media":
+                return self.send(404, {"error": "no such endpoint"})
+            q = self.query()
+            media_file(q.get("path"), q.get("name")).unlink()
+            return self.send(200, {"deleted": q.get("name")})
+        except (ValueError, FileNotFoundError) as e:
             return self.send(400, {"error": str(e)})
 
     def do_PUT(self):
@@ -350,6 +401,8 @@ class Handler(BaseHTTPRequestHandler):
                 q = self.query()
                 return self.send(200, upload(q.get("path"), q.get("name", "image"), self.body()))
             req = json.loads(self.body() or b"{}")
+            if p == "/_api/youtube":
+                return self.send(200, add_video(req.get("path"), req.get("url")))
             if p == "/_api/preview":
                 return self.send(200, preview(req["path"], req["text"]))
             if p == "/_api/publish":

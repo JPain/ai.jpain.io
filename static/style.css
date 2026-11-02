@@ -105,3 +105,12 @@ footer .small a { color: var(--muted); }
 /* The email on About: "Show email address" runs a quiet proof-of-work (static/contact.js). */
 button.pow-start { font: inherit; color: var(--accent); background: none; border: 0; padding: 0; text-decoration: underline; cursor: pointer; }
 .pow-status { color: var(--muted); }
+/* YouTube videos (build.py youtube_embeds, static/youtube.js): the thumbnail, then the player. */
+.yt { position: relative; display: block; width: 100%; aspect-ratio: 16 / 9; border: 0; border-radius: 6px; overflow: hidden; background: #000; color: #fff; text-decoration: none; }
+.yt img { display: block; width: 100%; height: 100%; object-fit: cover; border-radius: 0; }
+.yt .yt-title { position: absolute; inset: 0 0 auto; padding: .7rem 1rem 2rem; font-size: .95rem; line-height: 1.35; background: linear-gradient(rgb(0 0 0 / .65), transparent); text-shadow: 0 1px 2px rgb(0 0 0 / .5); }
+.yt .yt-play { position: absolute; left: 50%; top: 50%; width: 68px; height: 48px; transform: translate(-50%, -50%); }
+.yt .yt-bg { fill: #212121; fill-opacity: .8; transition: fill .15s, fill-opacity .15s; }
+.yt:hover .yt-bg, .yt:focus-visible .yt-bg { fill: #f00; fill-opacity: 1; }
+.yt:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+@media print { .yt .yt-play { display: none; } }

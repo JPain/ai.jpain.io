@@ -20,7 +20,7 @@
     <button type="button" data-view="preview">Preview</button>
   </nav>
   <span class="actions">
-    <a id="live" class="btn quiet" target="_blank" rel="noopener" hidden>View live</a>
+    <a id="live" class="btn quiet" target="_blank" rel="noopener" hidden>View live ↗</a>
     <button type="button" class="btn" id="save" disabled title="Ctrl+S">Save</button>
     <button type="button" class="btn primary" id="publish" disabled>Publish</button>
   </span>
@@ -29,20 +29,48 @@
 <main id="main" data-view="write">
   <aside class="side">
     <button type="button" class="btn wide" id="new">+ New post</button>
+    <section id="media-box" hidden>
+      <h2>Images in this post</h2>
+      <p class="hint">Click one to insert it. You can also drop or paste images into the text.</p>
+      <ul id="media" class="media"></ul>
+      <label class="btn wide">Add image…<input type="file" id="upload" accept="image/*" hidden multiple></label>
+    </section>
     <h2>Drafts</h2>
     <ul id="drafts" class="files"></ul>
     <h2>Posts</h2>
     <ul id="posts" class="files"></ul>
-    <section id="media-box" hidden>
-      <h2>Images in this post</h2>
-      <p class="hint">Click one to insert it. Drop or paste an image into the text to add one.</p>
-      <ul id="media" class="media"></ul>
-      <label class="btn wide">Add image…<input type="file" id="upload" accept="image/*" hidden multiple></label>
-    </section>
   </aside>
 
   <section class="write">
+    <div class="toolbar" id="toolbar" role="toolbar" aria-label="Formatting" aria-controls="text">
+      <span class="group">
+        <button type="button" data-cmd="h2" title="Heading">H2</button>
+        <button type="button" data-cmd="h3" title="Subheading">H3</button>
+      </span>
+      <span class="group">
+        <button type="button" data-cmd="bold" title="Bold (Ctrl+B)"><svg viewBox="0 0 20 20"><path d="M6 4h5a3 3 0 0 1 0 6H6zm0 6h6a3 3 0 0 1 0 6H6z"/></svg></button>
+        <button type="button" data-cmd="italic" title="Italic (Ctrl+I)"><svg viewBox="0 0 20 20"><path d="M12 4H8m4 12H8m3-12-2 12"/></svg></button>
+        <button type="button" data-cmd="code" title="Code in a sentence (Ctrl+E)"><svg viewBox="0 0 20 20"><path d="m7 6-4 4 4 4m6-8 4 4-4 4"/></svg></button>
+        <button type="button" data-cmd="link" title="Link (Ctrl+K)"><svg viewBox="0 0 20 20"><path d="M8.5 11.5a3 3 0 0 0 4.2 0l3-3a3 3 0 0 0-4.2-4.2l-1 1m-1 5.2a3 3 0 0 0-4.2 0l-3 3a3 3 0 0 0 4.2 4.2l1-1" transform="translate(0 -1)"/></svg></button>
+      </span>
+      <span class="group">
+        <button type="button" data-cmd="ul" title="Bulleted list"><svg viewBox="0 0 20 20"><path d="M8 5h9M8 10h9M8 15h9"/><circle cx="4" cy="5" r="1" class="fill"/><circle cx="4" cy="10" r="1" class="fill"/><circle cx="4" cy="15" r="1" class="fill"/></svg></button>
+        <button type="button" data-cmd="ol" title="Numbered list"><svg viewBox="0 0 20 20"><path d="M8 5h9M8 10h9M8 15h9M3.5 3.5h1v3m-1 0h2M3 9h2.2l-2.2 2.5h2.4M3 13.5h2.2l-1 1.2a1 1 0 1 1-1 1.3"/></svg></button>
+        <button type="button" data-cmd="quote" title="Quote"><svg viewBox="0 0 20 20"><path d="M4 4v12M8 6h8M8 10h8M8 14h5"/></svg></button>
+        <button type="button" data-cmd="pre" title="Code block"><svg viewBox="0 0 20 20"><rect x="2.5" y="3.5" width="15" height="13" rx="2"/><path d="m7 8-2 2 2 2m6-4 2 2-2 2"/></svg></button>
+        <button type="button" data-cmd="table" title="Table"><svg viewBox="0 0 20 20"><rect x="2.5" y="3.5" width="15" height="13" rx="1.5"/><path d="M2.5 8h15M2.5 12.3h15M10 3.5v13"/></svg></button>
+        <button type="button" data-cmd="hr" title="Divider"><svg viewBox="0 0 20 20"><path d="M3 10h14"/></svg></button>
+      </span>
+      <span class="group">
+        <button type="button" data-cmd="image" title="Image"><svg viewBox="0 0 20 20"><rect x="2.5" y="3.5" width="15" height="13" rx="2"/><circle cx="7" cy="8" r="1.5"/><path d="m3 15 4.5-4.5 3 3 2-2 4.5 4.5"/></svg><span>Image</span></button>
+        <button type="button" data-cmd="youtube" title="YouTube video"><svg viewBox="0 0 20 20"><rect x="1.5" y="4" width="17" height="12" rx="3.5"/><path d="M8.3 7.3v5.4l4.5-2.7z" class="fill"/></svg><span>Video</span></button>
+      </span>
+      <span class="group end">
+        <button type="button" data-cmd="help" title="Markdown cheat sheet" aria-label="Markdown cheat sheet">?</button>
+      </span>
+    </div>
     <textarea id="text" spellcheck="true" disabled placeholder="Pick a post or draft on the left, or start a new one."></textarea>
+    <div class="status" id="status" aria-live="polite"></div>
   </section>
 
   <section class="preview">
@@ -59,5 +87,20 @@
     <p class="dlg-buttons" id="dlg-buttons"></p>
   </form>
 </dialog>
+
+<template id="help">
+  <table class="cheat">
+    <tr><td><code>## Heading</code></td><td>Heading (<code>###</code> for a smaller one)</td></tr>
+    <tr><td><code>**bold**</code>, <code>*italic*</code></td><td>Ctrl+B, Ctrl+I</td></tr>
+    <tr><td><code>[text](https://…)</code></td><td>Link, Ctrl+K. Paste an address over selected text to link it</td></tr>
+    <tr><td><code>[text](tab:https://…)</code></td><td>Link that opens in a new tab</td></tr>
+    <tr><td><code>`code`</code></td><td>Code in a sentence, Ctrl+E</td></tr>
+    <tr><td><code>- item</code>, <code>1. item</code></td><td>Lists. Enter continues one, Enter on an empty item ends it</td></tr>
+    <tr><td><code>&gt; text</code></td><td>Quote</td></tr>
+    <tr><td><code>![alt](name.webp "Caption")</code></td><td>Image: alt text is required, the caption is optional</td></tr>
+    <tr><td><code>[Title](https://youtu.be/…){.youtube}</code></td><td>YouTube video. Nothing loads from YouTube until a reader presses play</td></tr>
+    <tr><td><code>---</code></td><td>Divider, with a blank line either side</td></tr>
+  </table>
+</template>
 </body>
 </html>
