@@ -185,10 +185,10 @@ button.pow-start { font: inherit; color: var(--link); background: none; border: 
   .e-content figure.gallery.cols-5, .e-content figure.gallery.cols-6 {
     width: min(54rem, calc(100vw - clamp(0rem, 10vw - 4rem, 7rem) - 1.1rem - var(--gutter) - 2rem)); }
 }
-@media (max-width: 48rem) { figure.gallery.cols-4 { --cols: 2; } }
 @media (max-width: 52rem) { blockquote::before { left: -.6em; } }
 /* Phones: one column; the year becomes a small heading over its posts. */
 @media (max-width: 36rem) {
+  figure.gallery.cols-4 { --cols: 2; }
   header { display: block; }
   ul.posts li { grid-template-columns: 1fr; padding: .5rem 0; }
   ul.posts .when { order: 2; }
