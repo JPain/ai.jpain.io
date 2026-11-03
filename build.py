@@ -85,12 +85,30 @@ def media_dir(path, slug):
     return ROOT / ("drafts" if rel[:1] in (("drafts",), ("work",)) else "") / "media" / slug
 
 
+# What an image file says about itself (size, metadata), remembered until the file changes: the
+# editor's preview asks on every keystroke, and decoding every image each time was most of the cost.
+_IMAGE_FACTS = {}
+
+
+def image_facts(f):
+    st = f.stat()
+    key = (str(f), st.st_mtime_ns, st.st_size)
+    if key not in _IMAGE_FACTS:
+        if f.suffix.lower() == ".svg":
+            m = re.search(r'viewBox="[\d.\s-]*?([\d.]+)\s+([\d.]+)"', f.read_text())
+            size = (round(float(m.group(1))), round(float(m.group(2)))) if m else (None, None)
+            _IMAGE_FACTS[key] = (size, set())
+        else:
+            with Image.open(f) as im:
+                meta = {k for k in im.info if k.lower() in ("exif", "xmp", "comment", "parameters", "icc_profile") or k.startswith("XML")}
+                if im.getexif():
+                    meta.add("exif")
+                _IMAGE_FACTS[key] = (im.size, meta)
+    return _IMAGE_FACTS[key]
+
+
 def image_size(f):
-    if f.suffix.lower() == ".svg":
-        m = re.search(r'viewBox="[\d.\s-]*?([\d.]+)\s+([\d.]+)"', f.read_text())
-        return (round(float(m.group(1))), round(float(m.group(2)))) if m else (None, None)
-    with Image.open(f) as im:
-        return im.size
+    return image_facts(f)[0]
 
 
 def images_in(html_text):
@@ -798,7 +816,7 @@ def build_one(path):
         if meta.get("publish", "true").lower() != "false" and meta.get("unlisted", "").lower() not in ("true", "yes"):
             listed_tags |= {tag_slug(t) for t in meta.get("tags", "").split(",") if t.strip()}
     render_post(p, read_template("base.html"), read_template("post.html"), listed_tags)
-    return p["slug"]
+    return p
 
 
 def build():
@@ -1059,14 +1077,11 @@ def check_images(post):
         if kb > IMAGE_MAX_KB:
             problems.append(f"{src}: {kb:.0f} KB, over {IMAGE_MAX_KB} KB (run tools/img.py)")
         if f.suffix.lower() != ".svg":
-            with Image.open(f) as im:
-                meta = {k for k in im.info if k.lower() in ("exif", "xmp", "comment", "parameters", "icc_profile") or k.startswith("XML")}
-                if im.getexif():
-                    meta.add("exif")
-                if meta:
-                    problems.append(f"{src}: carries metadata ({', '.join(sorted(meta))}); run tools/img.py")
-                if im.width > 2400:
-                    problems.append(f"{src}: {im.width}px wide, over 2400 (run tools/img.py)")
+            (width, _), meta = image_facts(f)
+            if meta:
+                problems.append(f"{src}: carries metadata ({', '.join(sorted(meta))}); run tools/img.py")
+            if width > 2400:
+                problems.append(f"{src}: {width}px wide, over 2400 (run tools/img.py)")
     if total > POST_IMAGES_MAX_KB:
         problems.append(f"images total {total:.0f} KB, over {POST_IMAGES_MAX_KB} KB for one post")
     if folder.is_dir():
@@ -1091,11 +1106,12 @@ def check_images(post):
     return problems, total, len(used)
 
 
-def check(paths):
-    """Parse and render files without touching out/. Exits non-zero on problems."""
+def check(paths, post=None):
+    """Parse and render files without touching out/. Exits non-zero on problems. The editor passes
+    the post it has just rendered, so it isn't parsed twice."""
     for path in paths:
         p = Path(path).resolve()
-        post = parse(p)
+        post = post or parse(p)
         for k in ("summary", "tags"):
             if not post[k]:
                 sys.exit(f"{p}: missing header key '{k}'")

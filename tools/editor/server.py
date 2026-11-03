@@ -195,11 +195,14 @@ def preview(rel, text, full=True):
             mine.unlink()
         mine.write_text(text)
         b = engine()
-        log = io.StringIO()
+        log, post = io.StringIO(), None
         try:
             with contextlib.redirect_stdout(log):
                 b.use_site(PREVIEW)
-                b.build() if full else b.build_one(mine)
+                if full:
+                    b.build()
+                else:
+                    post = b.build_one(mine)      # the checks reuse it, rather than parsing again
         except SystemExit as e:
             return {"ok": False, "built": False, "message": plain(str(e.code or "build failed"))}
         except Exception as e:                   # a bug in build.py must not take the editor down
@@ -207,11 +210,13 @@ def preview(rel, text, full=True):
         log = io.StringIO()
         try:
             with contextlib.redirect_stdout(log):
-                b.check([str(mine)])
+                b.check([str(mine)], post)
             ok, msg = True, log.getvalue()
         except SystemExit as e:
             ok, msg = False, str(e.code)
-        return {"ok": ok, "built": True, "slug": slug, "full": full, "message": plain(msg)}
+        page = out / slug / "index.html"         # sent back with the answer: one round trip, not two
+        return {"ok": ok, "built": True, "slug": slug, "full": full, "message": plain(msg),
+                "html": page.read_text() if page.is_file() else ""}
 
 
 FRIENDLY = {"missing header key 'summary'": "Add a meta_description: line, the one-line summary for lists, feeds and search.",

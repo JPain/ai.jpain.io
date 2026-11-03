@@ -245,9 +245,19 @@ async function publish() {
 }
 
 // ---------------------------------------------------------------- preview
+// As you type: one update at a time, sent straight away. Anything typed while one is on its way
+// goes in the next, which leaves the moment the first returns.
+let inFlight = false, again = false;
 function schedulePreview(delay) {
   clearTimeout(previewTimer);
-  previewTimer = setTimeout(runPreview, delay === undefined ? 250 : delay);
+  previewTimer = setTimeout(kick, delay || 0);
+}
+async function kick() {
+  if (inFlight) { again = true; return; }
+  inFlight = true;
+  try { await runPreview(); } catch { /* shown in the checks line */ }
+  inFlight = false;
+  if (again) { again = false; kick(); }
 }
 // While you type, the server re-renders only this post (about a tenth of a second); a full build
 // runs when a post is opened or saved, so the home page and lists catch up then.
@@ -265,7 +275,7 @@ async function runPreview() {
   c.textContent = r.ok ? "Checks pass" : r.message;
   if (!r.built) return;
   const url = `/${r.slug}/`;
-  if (previewSlug === r.slug && await swapPreview(url, seq)) return;
+  if (previewSlug === r.slug && await swapPreview(url, seq, r.html)) return;
   if (seq !== previewSeq) return;
   let y = 0;
   try { if (previewSlug === r.slug) y = frame.contentWindow.scrollY; } catch { /* not loaded yet */ }
@@ -281,12 +291,13 @@ async function runPreview() {
 // Put the new page's <main> into the preview in place: no reload and no flash, the scroll stays
 // where it is, and images already shown aren't fetched again. A page whose stylesheets or
 // scripts changed, or that has a live demo (its script would need to run again), reloads instead.
-async function swapPreview(url, seq) {
+async function swapPreview(url, seq, html) {
   let doc;
   try { doc = frame.contentDocument; } catch { return false; }
   if (!doc || doc.readyState !== "complete" || !doc.querySelector("main")) return false;
-  let html;
-  try { html = await (await fetch(url + "?v=" + seq, { cache: "no-store" })).text(); } catch { return false; }
+  if (!html) {                                 // an older server: fetch the page as before
+    try { html = await (await fetch(url + "?v=" + seq, { cache: "no-store" })).text(); } catch { return false; }
+  }
   if (seq !== previewSeq) return true;         // a newer preview is on its way
   const next = new DOMParser().parseFromString(html, "text/html");
   // youtube.js and lightbox.js listen on the whole page, so they work on swapped-in content; once
