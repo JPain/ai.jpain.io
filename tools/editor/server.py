@@ -11,7 +11,8 @@ Publish runs ./publish.sh exactly as from a terminal.
 
   GET  /                       the editor (an <iframe> asking for / gets the preview's home)
   GET  /_api/list              posts and drafts, with whether each has unpublished changes
-  GET  /_api/file?path=        a file's text and hash
+  GET  /_api/file?path=        a file's text, hash and when it was saved
+  GET  /_api/stat?path=        just the hash and when it was saved (open tabs check for saves elsewhere)
   PUT  /_api/file              {path, text, hash}: save, refused (409) if the file changed since
   POST /_api/new               {title}: create drafts/<slug>.md
   POST /_api/preview           {path, text}: build the site with this text in place, run the checks
@@ -444,7 +445,10 @@ class Handler(BaseHTTPRequestHandler):
                 path = source(self.query().get("path"))
                 text = path.read_text()
                 return self.send(200, {"path": self.query()["path"], "text": text, "hash": digest(text),
-                                       "slug": slug_of(path, text)})
+                                       "slug": slug_of(path, text), "saved": path.stat().st_mtime})
+            if p == "/_api/stat":                  # has it been saved elsewhere? (an open tab asks)
+                path = source(self.query().get("path"))
+                return self.send(200, {"hash": digest(path.read_text()), "saved": path.stat().st_mtime})
             if p == "/_api/media":
                 path = source(self.query().get("path"))
                 folder = media_for(path, path.read_text())
@@ -491,7 +495,7 @@ class Handler(BaseHTTPRequestHandler):
                                        "unpublished": path.parent.name == "posts" and unpublished(req["path"])})
             if path.exists() and req.get("hash") != digest(current) and not req.get("force"):
                 return self.send(409, {"error": "changed on disk since you opened it",
-                                       "text": current, "hash": digest(current)})
+                                       "text": current, "hash": digest(current), "saved": path.stat().st_mtime})
             moved = follow_slug(path, current, req["text"]) if path.exists() else ""
             path.write_text(req["text"])
             return self.send(200, {"hash": digest(req["text"]), "moved": moved,

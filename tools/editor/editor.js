@@ -162,8 +162,9 @@ async function openFile(path) {
     const same = backup.hash === data.hash;
     const v = await ask("Unsaved edits found",
       same ? "This browser kept edits to this post that were never saved. Restore them?"
-           : "This browser kept unsaved edits, but the file has changed on disk since. Restoring puts your old edits over the newer file.",
-      [["Discard them", "no"], ["Restore", "yes", "primary"]]);
+           : `This browser kept unsaved edits, but the post was saved since then (${when(data.saved)}), perhaps on another computer. Restoring would put these older edits over the newer version.`,
+      same ? [["Discard them", "no"], ["Restore", "yes", "primary"]]
+           : [["Restore the older edits", "yes", "danger"], ["Discard them", "no", "primary"]]);
     if (v === "yes") text.value = backup.text;
     else store.del(backupKey(path));
   }
@@ -191,21 +192,23 @@ function slugOf(t, path) {
   return m ? m[1] : path.replace(/^.*\/|\.md$/g, "");
 }
 
+let saving = false;                             // the saved-elsewhere check waits for our own saves
 async function save(force) {
   if (!cur) return false;
+  saving = true;
+  try { return await saveNow(force); } finally { saving = false; lastCheck = Date.now(); }
+}
+async function saveNow(force) {
   const body = { path: cur.path, text: text.value, hash: cur.hash, force: !!force };
   let r;
   try { r = await api("PUT", "/_api/file", body); }
   catch (e) { showState("Save failed: " + e.message, "bad"); return false; }
   if (r.status === 409) {
-    const v = await ask("Changed on disk",
-      "Someone changed this file since you opened it: a terminal, git or Claude. Keep your version, or load theirs? Your version stays in this browser's backup either way.",
-      [["Cancel", "cancel"], ["Load theirs", "theirs"], ["Keep mine", "mine", "primary"]]);
-    if (v === "mine") return save(true);
-    if (v === "theirs") {
-      cur.hash = r.data.hash; cur.saved = r.data.text; text.value = r.data.text;
-      refreshState(); schedulePreview(0);
-    }
+    const v = await ask("Saved somewhere else",
+      `This post was saved at ${when(r.data.saved)}, after you opened it here: on another computer, or by Claude or git. Saving now would overwrite that newer version with this one.`,
+      [["Cancel", "cancel"], ["Overwrite the newer version", "mine", "danger"], ["Load the newer version", "theirs", "primary"]]);
+    if (v === "mine") return saveNow(true);
+    if (v === "theirs") loadNewer(r.data);
     return false;
   }
   cur.hash = r.data.hash;
@@ -243,6 +246,51 @@ async function publish() {
   }
   await loadList();
 }
+
+// ---------------------------------------------------------------- saved elsewhere?
+// A tab left open on another computer must not quietly hold an old version. When the tab comes
+// back into view, and every 20 seconds while it's showing, it asks whether the post was saved
+// since it opened it. With no unsaved edits it simply loads the newer version; with some, it
+// says so at once instead of waiting for Save to find out.
+function loadNewer(d) {
+  const at = text.selectionStart;
+  cur.hash = d.hash; cur.saved = d.text;
+  text.value = d.text;
+  text.setSelectionRange(Math.min(at, d.text.length), Math.min(at, d.text.length));
+  store.del(backupKey(cur.path));
+  needFull = true;
+  refreshState(); schedulePreview(0); loadMedia();
+}
+let lastCheck = 0, warned = "";
+async function checkFresh(now) {
+  if (!cur || saving || document.hidden || $("dialog").open || (!now && Date.now() - lastCheck < 15000)) return;
+  lastCheck = Date.now();
+  const path = cur.path;
+  let st;
+  try { st = (await api("GET", "/_api/stat?path=" + encodeURIComponent(path))).data; }
+  catch (e) {                                   // a draft published or deleted elsewhere
+    if (cur && cur.path === path) { showState("This post isn't where it was: published or removed elsewhere? Reload the list.", "bad"); loadList(); }
+    return;
+  }
+  if (!cur || saving || cur.path !== path || st.hash === cur.hash) return;
+  let d;
+  try { d = (await api("GET", "/_api/file?path=" + encodeURIComponent(path))).data; } catch { return; }
+  if (!cur || saving || cur.path !== path || d.hash === cur.hash) return;
+  if (!dirty()) {
+    loadNewer(d);
+    showState(`Updated: saved elsewhere at ${when(d.saved)}`);
+    return;
+  }
+  if (warned === d.hash) return;                // asked about this version already
+  warned = d.hash;
+  const v = await ask("Saved on another computer",
+    `This post was saved somewhere else at ${when(d.saved)}, after you opened it here. Your unsaved edits on this computer are based on the older version, and saving them would overwrite the newer one.`,
+    [["Keep my edits for now", "keep"], ["Load the newer version", "load", "primary"]]);
+  if (v === "load") loadNewer(d);
+}
+document.addEventListener("visibilitychange", () => checkFresh(true));
+window.addEventListener("focus", () => checkFresh(true));
+setInterval(() => checkFresh(false), 20000);
 
 // ---------------------------------------------------------------- preview
 // As you type: one update at a time, sent straight away. Anything typed while one is on its way
