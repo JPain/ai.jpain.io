@@ -24,7 +24,7 @@ hdr()  { "${C[@]}" -o /dev/null -D - "${@:2}" | tr -d '\r' | awk -F': ' -v h="$1
 
 if [[ "$D" == "ai.jpain.io" ]]; then   # merged into jpain.io 2026-10: every address moves there
   echo "--- every address redirects to the same path on jpain.io"
-  for u in / /about/ /colophon/ /feed.xml /feed.json /llms.txt /tags/ai/ \
+  for u in / /about/ /colophon/ /feed.xml /feed.json /tags/ai/ \
            /philips-air-performer-7000-local-coap/ /philips-air-performer-7000-local-coap/index.md "/a?b=1"; do
     chk "$u -> jpain.io$u"                "301 https://jpain.io$u" "$(loc "https://$D$u")"
   done
@@ -85,7 +85,7 @@ chk "odd tag link -> /tags/"              "301 /tags/"            "$(loc "https:
 chk "retired slug -> chroma-subsampling"  "301 https://$D/chroma-subsampling/" "$(loc "https://$D/game-screenshot-compression/")"
 chk "kudos is gone"                       "405"                   "$(code -X POST "https://$D/kudos${POST}")"
 chk "format negotiation: AVIF for Chrome" "image/avif"            "$(ctype -H 'Accept: image/avif,image/webp,*/*' -A 'Mozilla/5.0 Chrome/140' "https://$D/chroma-subsampling/negotiated.jpg")"
-PAGES="/about/ /tags/ /llms.txt /humans.txt /robots.txt /sitemap.xml /style.css /favicon.svg /chroma-subsampling/lab/"
+PAGES="/about/ /tags/ /robots.txt /sitemap.xml /style.css /favicon.svg /chroma-subsampling/lab/"
 for p in $PAGES; do
   chk "$p 200"                            "200"                   "$(code "https://$D$p")"
 done

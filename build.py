@@ -6,7 +6,7 @@ One engine, one folder per site. The site folder holds everything that belongs t
   posts/*.md    published posts (built)
   drafts/*.md   drafts (ignored by the build)
   pages/*.md    standalone pages, e.g. about
-  templates/    HTML templates with {placeholders}; optional home.html, 404.html, robots.txt, llms.txt
+  templates/    HTML templates with {placeholders}; optional home.html, 404.html, robots.txt, llms.txt, humans.txt
   static/       copied verbatim into the output
   media/<slug>/ images and demo files for a published post, served next to it at /<slug>/<file>
   drafts/media/<slug>/  the same for a draft (git-ignored until publish.sh moves them)
