@@ -115,7 +115,17 @@ figure img, figure video { display: block; }
 figcaption { color: var(--muted); font-size: .88rem; font-style: italic; margin-top: .4rem; }
 figcaption::before { content: "Figure " counter(fig) ". "; font-style: normal; font-weight: 700; color: var(--ink); }
 img.pixel { image-rendering: pixelated; }
-figcaption b { font-style: normal; color: var(--fg); }
+figcaption b { font-style: normal; color: var(--label, var(--fg)); }
+/* Caption label colours: ![alt](x.webp "**Label** detail"){.green} colours that image's bold label
+   (James, 2026-11-03: the card captions read better coloured by rarity). */
+figure:has(> img.grey) { --label: #6b7280; }   figure:has(> img.green) { --label: #23824f; }
+figure:has(> img.blue) { --label: #2a64c4; }   figure:has(> img.purple) { --label: #7448cf; }
+figure:has(> img.orange) { --label: #b46c0c; } figure:has(> img.pink) { --label: #c43c76; }
+@media (prefers-color-scheme: dark) {
+  figure:has(> img.grey) { --label: #a9afba; }   figure:has(> img.green) { --label: #6fd39b; }
+  figure:has(> img.blue) { --label: #86b4ff; }   figure:has(> img.purple) { --label: #bca2ff; }
+  figure:has(> img.orange) { --label: #f2b45a; } figure:has(> img.pink) { --label: #ff92c0; }
+}
 
 /* Galleries: images on consecutive lines sit side by side, each captioned (build.py figures). */
 figure.gallery { --cols: 3; display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); gap: 1.4rem 1rem; margin: 1.8rem 0; align-items: start; }
@@ -126,7 +136,7 @@ figure.gallery figure { margin: 0; }
 figure.gallery img { width: 100%; }
 figure.gallery figcaption { font-style: normal; text-align: center; font-size: .85rem; line-height: 1.4; margin-top: .55rem; }
 figure.gallery figcaption::before { content: none; }
-figure.gallery figcaption b { display: block; font-size: 1.05rem; color: var(--ink); }
+figure.gallery figcaption b { display: block; font-size: 1.05rem; color: var(--label, var(--ink)); }
 /* Image sizes, chosen in the editor: ![alt](x.webp){.medium} or {.small}. Full width otherwise. */
 img.medium { width: auto; max-width: min(100%, 24rem); }
 img.small { width: auto; max-width: min(100%, 15rem); }
