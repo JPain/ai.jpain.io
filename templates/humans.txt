@@ -18,7 +18,6 @@
   Language: English (British)
   Standards: HTML, CSS, Atom, JSON Feed, schema.org, microformats (h-entry), llms.txt, robots.txt
   Software: one Python script, build.py, and plain Markdown files
-  Fonts: none downloaded; your system's own serif, sans and monospace
-  JavaScript: none, except in a post with a live demo
+  Fonts: Charis SIL, served from this site; your system's own monospace for code
+  JavaScript: only where a page needs it: to enlarge an image, play a video, run a live demo, or show the email address
   Cookies and trackers: none
-  Source and history: https://github.com/JPain/ai.jpain.io
