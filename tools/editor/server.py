@@ -368,7 +368,8 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(code)
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(body)))
-        self.send_header("Cache-Control", "no-store")
+        if "Cache-Control" not in (extra or {}):
+            self.send_header("Cache-Control", "no-store")
         self.send_header("X-Content-Type-Options", "nosniff")
         for k, v in (extra or {}).items():
             self.send_header(k, v)
@@ -397,7 +398,21 @@ class Handler(BaseHTTPRequestHandler):
         ctype = mimetypes.guess_type(f.name)[0] or "application/octet-stream"
         if ctype.startswith("text/") or ctype in ("application/javascript", "application/json"):
             ctype += "; charset=utf-8"
-        self.send(200, f.read_bytes(), ctype)
+        data = f.read_bytes()
+        if ctype.startswith("text/html"):
+            return self.send(200, data, ctype)            # pages: always fresh
+        # Images, fonts, styles, scripts: the browser keeps them and asks before reusing them, so
+        # an unchanged image is never downloaded twice. The tag is the content's hash: a full
+        # preview rebuild rewrites every file, so a timestamp would change when nothing had.
+        etag = '"' + hashlib.sha1(data).hexdigest()[:20] + '"'
+        cache = {"ETag": etag, "Cache-Control": "no-cache"}
+        if self.headers.get("If-None-Match") == etag:
+            self.send_response(304)
+            for k, v in cache.items():
+                self.send_header(k, v)
+            self.end_headers()
+            return None
+        self.send(200, data, ctype, cache)
 
     # -- routes -------------------------------------------------------------
     def do_HEAD(self):

@@ -289,16 +289,60 @@ async function swapPreview(url, seq) {
   try { html = await (await fetch(url + "?v=" + seq, { cache: "no-store" })).text(); } catch { return false; }
   if (seq !== previewSeq) return true;         // a newer preview is on its way
   const next = new DOMParser().parseFromString(html, "text/html");
-  const assets = (d) => [...d.querySelectorAll("link[rel=stylesheet], script[src]")].map((e) => e.getAttribute("href") || e.getAttribute("src")).join("|");
-  // youtube.js and lightbox.js listen on the whole page, so they work on swapped-in content.
+  // youtube.js and lightbox.js listen on the whole page, so they work on swapped-in content; once
+  // loaded they stay loaded, so they don't count when comparing the two pages' assets.
   const shared = ["/youtube.js", "/lightbox.js"];
+  const assets = (d) => [...d.querySelectorAll("link[rel=stylesheet], script[src]")]
+    .map((e) => e.getAttribute("href") || e.getAttribute("src")).filter((u) => !shared.includes(u)).join("|");
   const demo = [...next.querySelectorAll("main script[src]")].some((e) => !shared.includes(e.getAttribute("src")));
   if (demo || !next.querySelector("main") || assets(next) !== assets(doc)) return false;
-  const main = doc.importNode(next.querySelector("main"), true);
+  const main = next.querySelector("main");
   main.querySelectorAll("script").forEach((e) => e.remove());   // already loaded
-  doc.querySelector("main").replaceWith(main);
+  morph(doc.querySelector("main"), main);
   doc.title = next.title;
   return true;
+}
+
+// Make `old` (in the preview) match `fresh` (the new page) while touching as little as possible:
+// a node that hasn't changed is kept, moved if need be, never rebuilt, so its images and video
+// thumbnails don't load again. A node that changed but is the same kind of container (the
+// article, the post's body, a gallery, a figure) is updated inside; anything else is replaced.
+function morph(old, fresh) {
+  for (const a of [...old.attributes]) if (!fresh.hasAttribute(a.name) && !RUNTIME.has(a.name)) old.removeAttribute(a.name);
+  for (const a of [...fresh.attributes]) if (old.getAttribute(a.name) !== a.value && !(a.name === "class" && sameClass(old, a.value))) old.setAttribute(a.name, a.value);
+  const kids = [...old.childNodes];
+  const pool = new Map();                       // unchanged old nodes, by what they hold
+  kids.forEach((n) => { const k = keyOf(n); if (!pool.has(k)) pool.set(k, []); pool.get(k).push(n); });
+  const taken = new Set();
+  const take = (n) => { taken.add(n); const list = pool.get(keyOf(n)); if (list) list.splice(list.indexOf(n), 1); return n; };
+  const result = [...fresh.childNodes].map((n, i) => {
+    const same = pool.get(keyOf(n));
+    if (same && same.length) return take(same[0]);
+    const here = kids[i];
+    if (here && !taken.has(here) && here.nodeType === 1 && n.nodeType === 1 && here.tagName === n.tagName
+        && here.getAttribute("class") === n.getAttribute("class") && n.children.length) {
+      take(here);
+      morph(here, n);
+      return here;
+    }
+    return old.ownerDocument.importNode(n, true);
+  });
+  result.forEach((n, i) => { if (old.childNodes[i] !== n) old.insertBefore(n, old.childNodes[i] || null); });
+  while (old.childNodes.length > result.length) old.lastChild.remove();
+}
+// Attributes the page's own scripts add (lightbox.js marks images it can enlarge): not changes.
+const RUNTIME = new Set(["tabindex", "role", "aria-label"]);
+const sameClass = (el, v) => (el.getAttribute("class") || "").replace(/\s*\bzoomable\b/, "").trim() === v.trim();
+function keyOf(n) {
+  if (n.nodeType !== 1) return n.nodeType + ":" + n.data;
+  const c = n.cloneNode(true);
+  for (const img of [c, ...c.querySelectorAll("img")]) {
+    if (img.tagName !== "IMG" || !img.classList.contains("zoomable")) continue;
+    img.classList.remove("zoomable");
+    if (!img.classList.length) img.removeAttribute("class");
+    RUNTIME.forEach((a) => img.removeAttribute(a));
+  }
+  return c.outerHTML;
 }
 
 // ---------------------------------------------------------------- editing helpers
