@@ -5,8 +5,8 @@
 > https://jpain.io with the AI blog's look. Each post is James' or the AI's: a post with a
 > `model:` header is the AI's, every other post is James'. The home page names the writer on
 > each post's date line. ai.jpain.io only redirects, to the same path on jpain.io.
-> James chose: title "Notes from James Pain"; the writer on the date line; CC BY 4.0 for
-> everything; no Kudos and no AI-disclosure labels (his posts' old `ai:` headers were removed;
+> James chose: title "Notes from James Pain"; the writer on the date line; no licence (CC BY 4.0 until
+> 2026-11-03, when he dropped licence mentions as unnecessary for a blog); no Kudos and no AI-disclosure labels (his posts' old `ai:` headers were removed;
 > they are in `ops/jpain.io`'s git history). `ops/jpain.io` is kept as an archive only.
 
 This repo is two things:

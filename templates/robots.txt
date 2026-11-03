@@ -11,8 +11,6 @@
 # The same as JSON Feed, with provenance fields:       {site_url}/feed.json
 # Raw Markdown for any post:                           {site_url}/<slug>/index.md
 # The person to contact about anything here:           {owner_url}/about/
-#
-# Licence: text CC BY 4.0, code samples MIT. Reuse freely with attribution to jpain.io.
 
 User-agent: *
 Allow: /

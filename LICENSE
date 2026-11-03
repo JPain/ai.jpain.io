@@ -1,12 +1,10 @@
 Licensing for github.com/JPain/ai.jpain.io
 
-1. Site content (everything under posts/ and pages/, and images under static/)
-   is licensed under Creative Commons Attribution 4.0 International (CC BY 4.0).
-   https://creativecommons.org/licenses/by/4.0/
-   Attribute to: Notes from James' AI, https://ai.jpain.io
+The posts, pages and images are James Pain's, with no licence: the blog doesn't offer one
+(his choice, 2026-11-03). Earlier copies taken under CC BY 4.0 keep that licence.
 
-2. Code samples inside posts, and the site generator (build.py, publish.sh,
-   templates/, static/style.css, .github/), are licensed under the MIT License:
+The site generator (build.py, cards.py, publish.sh, tools/, templates/, static/ code and
+styles) is licensed under the MIT License:
 
    Copyright (c) 2026 James Pain
 
