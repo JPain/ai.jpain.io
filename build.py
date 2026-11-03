@@ -130,6 +130,23 @@ YT_P = re.compile(r'<p><a ([^>]*\bclass="youtube"[^>]*)>(.*?)</a></p>', re.S)
 YT_ID = re.compile(r'(?:youtu\.be/|youtube(?:-nocookie)?\.com/(?:watch\?(?:.*&)?v=|shorts/|embed/|live/))([\w-]{11})')
 
 
+# A note: a quote whose first line is [!NOTE] (GitHub's and Obsidian's alert syntax), with an
+# optional label after it on the same line:
+#   > [!NOTE] Definition
+#   > "Vibe coding" means ...
+# It becomes <aside class="note"> with the label ("Note" if none) as its first line.
+NOTE = re.compile(r"<blockquote>\s*<p>\[!NOTE\][ \t]*([^\n<]*?)[ \t]*(\n|</p>\s*)(.*?)</blockquote>", re.S | re.I)
+
+
+def note_blocks(html_text):
+    def note(m):
+        label = m.group(1).strip() or "Note"
+        rest = m.group(3)
+        rest = ("<p>" + rest) if m.group(2) == "\n" else rest   # the label shared the first paragraph
+        return f'<aside class="note">\n<p class="note-label">{label}</p>\n{rest.strip()}\n</aside>'
+    return NOTE.sub(note, html_text)
+
+
 def youtube_ref(url):
     """(video id, start second) from any YouTube address, or (None, 0)."""
     url = html.unescape(url)
@@ -309,7 +326,7 @@ def parse(path):
     md = markdown.Markdown(extensions=exts, extension_configs=MD_CONFIG)
     words = len(re.findall(r"\S+", body))
     folder = media_dir(path, slug)
-    raw_html = youtube_embeds(md.convert(terminal_fences(bear_markdown(body) if typing.get("bear_markdown") else body)))
+    raw_html = note_blocks(youtube_embeds(md.convert(terminal_fences(bear_markdown(body) if typing.get("bear_markdown") else body))))
     return {
         "media": folder,
         "images": images_in(raw_html),

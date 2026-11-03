@@ -91,11 +91,10 @@ body.no-side .side { display: none; }
 
 /* ---------------------------------------------------------------- writing */
 .write { min-width: 0; display: flex; flex-direction: column; background: var(--paper); container-type: inline-size; }
-.toolbar { display: flex; flex-wrap: wrap; gap: .25rem .45rem; padding: .4rem .7rem; border-bottom: 1px solid var(--rule); background: var(--bg); }
+.toolbar { display: flex; flex-wrap: wrap; gap: .25rem .3rem; padding: .4rem .5rem; border-bottom: 1px solid var(--rule); background: var(--bg); }
 .toolbar .group { display: flex; gap: .1rem; }
-.toolbar .group + .group { border-left: 1px solid var(--rule); padding-left: .45rem; }
-.toolbar .end { margin-left: auto; }
-.toolbar button { display: inline-flex; align-items: center; gap: .3rem; height: 2rem; min-width: 2rem; justify-content: center; padding: 0 .4rem; border: 1px solid transparent; border-radius: 6px; background: none; cursor: pointer; color: var(--fg); font-size: .82rem; font-weight: 600; }
+.toolbar .group + .group { border-left: 1px solid var(--rule); padding-left: .3rem; }
+.toolbar button { display: inline-flex; align-items: center; gap: .3rem; height: 2rem; min-width: 1.75rem; justify-content: center; padding: 0 .3rem; border: 1px solid transparent; border-radius: 6px; background: none; cursor: pointer; color: var(--fg); font-size: .82rem; font-weight: 600; }
 .toolbar button:hover:not(:disabled) { background: var(--accent-soft); color: var(--accent-on-soft); }
 .toolbar button:disabled { opacity: .4; cursor: default; }
 .toolbar button span { font-weight: 500; }
@@ -103,7 +102,7 @@ body.no-side .side { display: none; }
 .toolbar svg .fill { fill: currentColor; stroke: none; }
 .toolbar [data-cmd="bold"] svg { stroke-width: 2.4; }
 /* Words on Image and Video only when the writing pane has room for them on one row. */
-@container (max-width: 640px) { .toolbar button span { display: none; } .toolbar .end { margin-left: 0; } }
+@container (max-width: 640px) { .toolbar button span { display: none; } }
 @container (max-width: 500px) { .toolbar { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; } }
 
 textarea { flex: 1; width: 100%; min-height: 0; border: 0; resize: none; background: var(--paper);
@@ -112,7 +111,8 @@ textarea::placeholder { color: var(--muted); font-family: var(--serif); font-sty
 textarea::selection { background: var(--accent-soft); }
 textarea:focus { outline: none; }
 textarea.drop { box-shadow: inset 0 0 0 3px var(--accent); }
-.status { font: .74rem var(--mono); color: var(--muted); padding: .3rem 1rem; border-top: 1px solid var(--rule); background: var(--bg); min-height: 1.6rem; }
+.status { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; font: .74rem var(--mono); color: var(--muted); padding: .3rem 1rem; border-top: 1px solid var(--rule); background: var(--bg); min-height: 1.6rem; }
+.status .help { font: .78rem var(--sans); color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
 
 /* ---------------------------------------------------------------- preview */
 .preview { min-width: 0; display: flex; flex-direction: column; border-left: 1px solid var(--rule); }

@@ -16,6 +16,7 @@
   --ink: #1a6ea8;            /* cerulean: brighter and lighter than the link blue */
   --gutter: 10.5rem;
   /* Names the posts' live demos (media/<slug>/*.css) use from this sheet. */
+  --note: #f1f6fa;          /* a note's tint: the ink, very faint */
   --accent: var(--ink); --accent-soft: #e4eff8; --accent-on-soft: #15598a; --card: #f6f6f6;
   --serif: var(--font-body); --mono: var(--font-mono);
   --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
@@ -23,7 +24,7 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #141414; --fg: #e4e4e4; --muted: #a3a3a3; --rule: #333; --code: #1f1f1f;
-    --link: #8fb0ff; --visited: #c9a0ff; --ink: #6fbbea;
+    --link: #8fb0ff; --visited: #c9a0ff; --ink: #6fbbea; --note: #172129;
     --accent-soft: #16283a; --accent-on-soft: var(--ink); --card: #1c1c1c;
   }
 }
@@ -103,6 +104,10 @@ pre.ascii { background: none; box-shadow: none; color: var(--muted); padding: 0;
 blockquote { position: relative; margin: 1.2rem 0 1.2rem 1.4rem; padding: 0; font-style: italic; }
 blockquote::before { content: "\201C"; position: absolute; left: -.75em; top: -.2em; font-size: 2.4rem; line-height: 1; color: var(--ink); font-style: normal; }
 hr { border: 0; border-top: 1px solid var(--rule); margin: 2rem 0; }
+/* Notes: "> [!NOTE] Label" (build.py note_blocks). A tinted box with the ink rule, not a quotation. */
+aside.note { margin: 1.6rem 0; padding: .75rem 1.1rem; border-left: 3px solid var(--ink); background: var(--note); font-size: .95rem; max-width: 38rem; }
+aside.note p { margin: .45rem 0; }
+aside.note .note-label { margin: 0 0 .15rem; font-weight: 700; font-size: .85rem; color: var(--ink); }
 img, video { max-width: 100%; height: auto; }
 figure { margin: 1.6rem 0; }
 figure img, figure video { display: block; }
@@ -182,6 +187,7 @@ button.pow-start { font: inherit; color: var(--link); background: none; border: 
   a, h1, h2, h3, .site-title { color: #000; }
   .e-content a[href^="http"]::after { content: " (" attr(href) ")"; font-size: .85em; word-break: break-all; }
   pre, code { background: none; color: #000; border: 1px solid #ccc; box-shadow: none; }
+  aside.note { background: none; border: 1px solid #000; }
   div.hl .gp, div.hl .go { color: #000; }
   pre { white-space: pre-wrap; }
   pre, figure, table, img { break-inside: avoid; }

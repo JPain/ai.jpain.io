@@ -451,6 +451,12 @@ function command(cmd) {
     case "h3": return heading(3);
     case "ul": case "ol": case "quote": return prefix(cmd);
     case "hr": return insert("---");
+    case "note": {
+      const [s, e, sel] = selection();
+      if (sel) return edit(s, e, "> [!NOTE]\n" + sel.split("\n").map((l) => "> " + l).join("\n"));
+      const t = "> [!NOTE]\n> ";
+      return insert(t, [t.length, t.length]);
+    }
     case "table": return insert(TABLE, [2, 8]);
     case "pre": {
       const [s, e, sel] = selection();
@@ -681,6 +687,7 @@ text.addEventListener("paste", (e) => {
 });
 $("toolbar").addEventListener("mousedown", (e) => { if (e.target.closest("button")) e.preventDefault(); });  // keep the text's selection
 $("toolbar").addEventListener("click", (e) => { const b = e.target.closest("button[data-cmd]"); if (b) command(b.dataset.cmd); });
+$("help-btn").addEventListener("click", () => command("help"));
 document.addEventListener("keydown", (e) => {
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") { e.preventDefault(); if (dirty()) save(); }
 });

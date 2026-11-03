@@ -61,6 +61,7 @@
         <button type="button" data-cmd="ul" title="Bulleted list"><svg viewBox="0 0 20 20"><path d="M8 5h9M8 10h9M8 15h9"/><circle cx="4" cy="5" r="1" class="fill"/><circle cx="4" cy="10" r="1" class="fill"/><circle cx="4" cy="15" r="1" class="fill"/></svg></button>
         <button type="button" data-cmd="ol" title="Numbered list"><svg viewBox="0 0 20 20"><path d="M8 5h9M8 10h9M8 15h9M3.5 3.5h1v3m-1 0h2M3 9h2.2l-2.2 2.5h2.4M3 13.5h2.2l-1 1.2a1 1 0 1 1-1 1.3"/></svg></button>
         <button type="button" data-cmd="quote" title="Quote"><svg viewBox="0 0 20 20"><path d="M4 4v12M8 6h8M8 10h8M8 14h5"/></svg></button>
+        <button type="button" data-cmd="note" title="Note: a boxed aside, such as a definition"><svg viewBox="0 0 20 20"><rect x="2.5" y="3.5" width="15" height="13" rx="1.5"/><path d="M10 9v4.5"/><circle cx="10" cy="6.6" r=".9" class="fill"/></svg></button>
         <button type="button" data-cmd="pre" title="Code block"><svg viewBox="0 0 20 20"><rect x="2.5" y="3.5" width="15" height="13" rx="2"/><path d="m7 8-2 2 2 2m6-4 2 2-2 2"/></svg></button>
         <button type="button" data-cmd="table" title="Table"><svg viewBox="0 0 20 20"><rect x="2.5" y="3.5" width="15" height="13" rx="1.5"/><path d="M2.5 8h15M2.5 12.3h15M10 3.5v13"/></svg></button>
         <button type="button" data-cmd="hr" title="Divider"><svg viewBox="0 0 20 20"><path d="M3 10h14"/></svg></button>
@@ -69,12 +70,9 @@
         <button type="button" data-cmd="image" title="Image"><svg viewBox="0 0 20 20"><rect x="2.5" y="3.5" width="15" height="13" rx="2"/><circle cx="7" cy="8" r="1.5"/><path d="m3 15 4.5-4.5 3 3 2-2 4.5 4.5"/></svg><span>Image</span></button>
         <button type="button" data-cmd="youtube" title="YouTube video"><svg viewBox="0 0 20 20"><rect x="1.5" y="4" width="17" height="12" rx="3.5"/><path d="M8.3 7.3v5.4l4.5-2.7z" class="fill"/></svg><span>Video</span></button>
       </span>
-      <span class="group end">
-        <button type="button" data-cmd="help" title="Markdown cheat sheet" aria-label="Markdown cheat sheet">?</button>
-      </span>
     </div>
     <textarea id="text" spellcheck="true" disabled placeholder="Pick a post or draft on the left, or start a new one."></textarea>
-    <div class="status" id="status" aria-live="polite"></div>
+    <div class="status"><span id="status" aria-live="polite"></span><button type="button" class="help" id="help-btn">Formatting help</button></div>
   </section>
 
   <section class="preview">
@@ -101,6 +99,7 @@
     <tr><td><code>`code`</code></td><td>Code in a sentence, Ctrl+E</td></tr>
     <tr><td><code>- item</code>, <code>1. item</code></td><td>Lists. Enter continues one, Enter on an empty item ends it</td></tr>
     <tr><td><code>&gt; text</code></td><td>Quote</td></tr>
+    <tr><td><code>&gt; [!NOTE] Label</code><br><code>&gt; text</code></td><td>Note: a boxed aside, such as a definition. The label is optional ("Note" if left out). Enter continues it</td></tr>
     <tr><td><code>![alt](name.webp "Caption")</code></td><td>Image: alt text is required, the caption is optional</td></tr>
     <tr><td><code>![alt](name.webp){.medium}</code></td><td>Image at about half the column; <code>{.small}</code> for phone screenshots. Click any image on the page to see it larger</td></tr>
     <tr><td><code>[Title](https://youtu.be/…){.youtube}</code></td><td>YouTube video. Nothing loads from YouTube until a reader presses play</td></tr>
