@@ -210,6 +210,7 @@ async function save(force) {
   }
   cur.hash = r.data.hash;
   cur.saved = body.text;
+  if (r.data.moved) { showState("Slug changed: " + r.data.moved); loadMedia(); }
   needFull = true;          // lists, tags and the home page catch up with the saved text
   store.del(backupKey(cur.path));
   const entry = list.find((p) => p.path === cur.path);

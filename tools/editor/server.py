@@ -293,6 +293,19 @@ def upload(rel, name, data):
     return {"name": out.name, "kb": round(len(data) / 1024), "width": w, "height": h}
 
 
+def follow_slug(path, old_text, new_text):
+    """A save that changes the slug: the post's images folder is named after the slug, so it moves
+    with it, or every image goes missing (James, 2026-11-03). Never over an existing folder."""
+    try:
+        old, new = media_for(path, old_text), media_for(path, new_text)
+    except ValueError:                           # a half-typed slug: leave the folder alone
+        return ""
+    if old == new or not old.is_dir() or new.exists():
+        return ""
+    old.rename(new)
+    return f"images moved to {new.relative_to(SITE)}/"
+
+
 def media_file(rel, name):
     """One file in a post's media folder, by exact name: never a path, never a glob."""
     path = source(rel)
@@ -447,8 +460,10 @@ class Handler(BaseHTTPRequestHandler):
             if path.exists() and req.get("hash") != digest(current) and not req.get("force"):
                 return self.send(409, {"error": "changed on disk since you opened it",
                                        "text": current, "hash": digest(current)})
+            moved = follow_slug(path, current, req["text"]) if path.exists() else ""
             path.write_text(req["text"])
-            return self.send(200, {"hash": digest(req["text"]), "unpublished": path.parent.name == "posts" and unpublished(req["path"])})
+            return self.send(200, {"hash": digest(req["text"]), "moved": moved,
+                                   "unpublished": path.parent.name == "posts" and unpublished(req["path"])})
         except (ValueError, KeyError, json.JSONDecodeError) as e:
             return self.send(400, {"error": str(e)})
 
