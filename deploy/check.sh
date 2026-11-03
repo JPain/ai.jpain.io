@@ -102,7 +102,6 @@ done
 chk "X-Served-By: ${SERVED_BY:-fern}"                  "${SERVED_BY:-fern}"                "$(hdr x-served-by "https://$D/")"
 chk "X-Clacks-Overhead"                   "GNU Terry Pratchett"   "$(hdr x-clacks-overhead "https://$D$POST")"
 chk "/teapot is a teapot"                 "418"                   "$(code "https://$D/teapot")"
-chk "post links its Markdown"             "1"                     "$("${C[@]}" "https://$D$POST" | grep -c 'type="text/markdown"')"
 chk "HTTP/2 negotiated"                   "2"                     "$("${C[@]}" -o /dev/null -w '%{http_version}' "https://$D/")"
 chk "HTTP/3 advertised (Alt-Svc)"         'h3=":443"; ma=86400'   "$(hdr alt-svc "https://$D/")"
 chk "HTML cached 10 minutes"              "max-age=600"           "$(hdr cache-control "https://$D/")"

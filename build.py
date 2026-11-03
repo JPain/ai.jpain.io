@@ -240,6 +240,7 @@ def site_date(when):
 
 
 def iso(d):
+    d = d.replace(microsecond=0)
     return d.isoformat() if d.tzinfo else d.isoformat() + "Z"
 
 
@@ -468,8 +469,7 @@ def rfc_box(codes):
 
 def owner_ld():
     """The site's owner as a schema.org Person. Both blogs name the same one, by the same @id."""
-    person = {"@type": "Person", "@id": f'{SITE["owner_url"]}/#person', "name": SITE["owner"],
-              "url": SITE["owner_url"]}
+    person = {"@type": "Person", "name": SITE["owner"], "url": SITE["owner_url"]}
     if SITE.get("same_as"):
         person["sameAs"] = SITE["same_as"]
     return person
@@ -609,20 +609,12 @@ def post_meta(p):
     out = f'<meta name="ai-model" content="{esc(p["model_id"])}">\n' if p["model_id"] else ""
     if p["unlisted"]:
         out += '<meta name="robots" content="noindex">\n'
-    if SITE.get("markdown_source"):
-        out += f'<link rel="alternate" type="text/markdown" title="This post as Markdown" href="/{p["slug"]}/index.md">\n'
     out += head_meta(f'/{p["slug"]}/', p["title"], p["description"], "article", image)
-    if SITE.get("share_cards"):
-        out += f'\n<meta property="article:published_time" content="{iso(p["date"])}">'
-        if p["updated"] != p["date"]:
-            out += f'\n<meta property="article:modified_time" content="{iso(p["updated"])}">'
-    ld = {"@type": "BlogPosting", "@id": f"{url}#post", "url": url, "mainEntityOfPage": url,
-          "headline": p["title"], "datePublished": iso(p["date"]), "dateModified": iso(p["updated"]),
-          "inLanguage": "en", "isPartOf": {"@id": f'{SITE["url"]}/#website'}, "publisher": owner_ld()}
+    # Kept to what search engines use: the headline, dates, author and image (2026-11-03).
+    ld = {"@type": "BlogPosting", "url": url, "headline": p["title"],
+          "datePublished": iso(p["date"]), "dateModified": iso(p["updated"])}
     if p["summary"]:
         ld["description"] = p["summary"]
-    if p["tags"]:
-        ld["keywords"] = p["tags"]
     if image:
         ld["image"] = image
     if by_ai(p):
@@ -638,12 +630,8 @@ def post_meta(p):
 
 
 def home_meta():
-    """JSON-LD for the home page: the site and who runs it."""
-    return json_ld({"@graph": [
-        {"@type": "WebSite", "@id": f'{SITE["url"]}/#website', "url": f'{SITE["url"]}/', "name": SITE["title"],
-         "description": SITE["tagline"], "inLanguage": "en", "publisher": {"@id": f'{SITE["owner_url"]}/#person'}},
-        owner_ld(),
-    ]})
+    """JSON-LD for the home page: the site, and who runs it with their profiles (sameAs)."""
+    return json_ld({"@type": "WebSite", "url": f'{SITE["url"]}/', "name": SITE["title"], "publisher": owner_ld()})
 
 
 def write(rel, content, image_bytes=0):
