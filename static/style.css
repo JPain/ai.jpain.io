@@ -119,7 +119,8 @@ figcaption b { font-style: normal; color: var(--fg); }
 
 /* Galleries: images on consecutive lines sit side by side, each captioned (build.py figures). */
 figure.gallery { --cols: 3; display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); gap: 1.4rem 1rem; margin: 1.8rem 0; align-items: start; }
-figure.gallery.cols-2 { --cols: 2; } figure.gallery.cols-4 { --cols: 4; } figure.gallery.cols-5 { --cols: 5; } figure.gallery.cols-6 { --cols: 6; }
+/* Five or six: two rows of three until the screen is wide enough for one row (see min-width: 75rem). */
+figure.gallery.cols-2 { --cols: 2; } figure.gallery.cols-4 { --cols: 4; } figure.gallery.cols-5, figure.gallery.cols-6 { --cols: 3; }
 figure.gallery figure { margin: 0; }
 .e-content figure.gallery figure { counter-increment: none; }   /* gallery items aren't numbered figures */
 figure.gallery img { width: 100%; }
@@ -176,15 +177,18 @@ button.pow-start { font: inherit; color: var(--link); background: none; border: 
      window's edge (body margin + padding + margin on the left, 2rem spare on the right). */
   .e-content div.hl { width: max-content; min-width: 100%;
     max-width: calc(100vw - clamp(0rem, 10vw - 4rem, 7rem) - 1.1rem - var(--gutter) - 2rem); }
-  /* A gallery of five or six grows into the same space, so each image stays a usable size. */
+}
+/* Wide screens only: a gallery of five or six becomes one row, growing into the space on the
+   right (as wide code blocks do) so each image stays a usable size. */
+@media (min-width: 75rem) {
+  figure.gallery.cols-5 { --cols: 5; } figure.gallery.cols-6 { --cols: 6; }
   .e-content figure.gallery.cols-5, .e-content figure.gallery.cols-6 {
     width: min(54rem, calc(100vw - clamp(0rem, 10vw - 4rem, 7rem) - 1.1rem - var(--gutter) - 2rem)); }
 }
+@media (max-width: 48rem) { figure.gallery.cols-4 { --cols: 2; } }
 @media (max-width: 52rem) { blockquote::before { left: -.6em; } }
 /* Phones: one column; the year becomes a small heading over its posts. */
 @media (max-width: 36rem) {
-  figure.gallery.cols-4 { --cols: 2; }
-  figure.gallery.cols-5, figure.gallery.cols-6 { --cols: 3; }
   header { display: block; }
   ul.posts li { grid-template-columns: 1fr; padding: .5rem 0; }
   ul.posts .when { order: 2; }
