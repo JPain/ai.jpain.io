@@ -103,7 +103,7 @@ directions he saw are in `work/designs` (git-ignored; `build.sh --serve`).
 ## Writing and publishing
 
 - **James' posts** use front matter between `---` lines (Bear's export format), with no
-  `model:`. He writes them in the browser editor at http://case:8099/ (`tools/editor`,
+  `model:`. He writes them in the browser editor at https://case.tail09e786.ts.net:8099/ (`tools/editor`,
   service `jpain-editor`; install with `tools/editor/jpain-editor.service`), which saves
   into `posts/` and `drafts/` and publishes through `./publish.sh` as James, with no AI trailer.
   Drafts are git-ignored, so his unpublished drafts never reach GitHub.

@@ -3,7 +3,8 @@
 
   /mnt/work/venvs/blog/bin/python tools/editor/server.py [--port 8099]
 
-Runs on Case as jpain-editor.service at http://case:8099/ and answers the tailnet and
+Runs on Case as jpain-editor.service on 127.0.0.1:8099, served to the tailnet over HTTPS by
+`tailscale serve --https=8099` at https://case.tail09e786.ts.net:8099/. It answers the tailnet and
 localhost only. The posts stay plain files: this edits posts/*.md and drafts/*.md in place,
 so a terminal, git or Claude can work on the same files. Saving never touches the live site;
 Publish runs ./publish.sh exactly as from a terminal.
@@ -493,7 +494,7 @@ def main():
     first = next(iter(sorted((SITE / "posts").glob("*.md"))), None)
     if first:                                    # so /fonts/ and the favicon exist before any preview
         preview(f"posts/{first.name}", first.read_text())
-    print(f"jpain.io editor on http://case:{a.port}/")
+    print(f"jpain.io editor on {a.bind}:{a.port} (https://case.tail09e786.ts.net:{a.port}/ via tailscale serve)")
     srv.serve_forever()
 
 
