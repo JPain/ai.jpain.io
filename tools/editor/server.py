@@ -150,6 +150,11 @@ def engine():
     return b
 
 
+# The newest preview asked for, per post. A request still waiting for build_lock when a newer one for
+# the same post has arrived gives way, so a burst (several tabs, a stuck client) builds once, not N times.
+_latest, _latest_lock = {}, threading.Lock()
+
+
 def preview(rel, text, full=True):
     """Build the site into PREVIEW with this one file's text in place, then check it.
 
@@ -159,7 +164,11 @@ def preview(rel, text, full=True):
     that while you type, and for a full build when a post is opened or saved."""
     path = source(rel)
     slug = slug_of(path, text)
+    with _latest_lock:
+        mine_no = _latest[rel] = _latest.get(rel, 0) + 1
     with build_lock:
+        if _latest[rel] != mine_no and not full:
+            return {"ok": True, "built": False, "superseded": True, "message": ""}
         out = PREVIEW / "out"
         full = full or not (out / slug / "index.html").is_file()
         if full:
@@ -477,6 +486,9 @@ class Handler(BaseHTTPRequestHandler):
             req = json.loads(self.body())
             path = source(req["path"])
             current = path.read_text() if path.exists() else ""
+            if path.exists() and req["text"] == current:   # already saved (a retried save): nothing to do
+                return self.send(200, {"hash": digest(current), "moved": "",
+                                       "unpublished": path.parent.name == "posts" and unpublished(req["path"])})
             if path.exists() and req.get("hash") != digest(current) and not req.get("force"):
                 return self.send(409, {"error": "changed on disk since you opened it",
                                        "text": current, "hash": digest(current)})
@@ -525,6 +537,7 @@ def main():
     a = ap.parse_args()
     ThreadingHTTPServer.address_family = __import__("socket").AF_INET6 if ":" in a.bind else __import__("socket").AF_INET
     ThreadingHTTPServer.daemon_threads = True
+    ThreadingHTTPServer.request_queue_size = 32   # the default 5 refused connections in a burst (tested 2026-11-03)
     srv = ThreadingHTTPServer((a.bind, a.port), Handler)
     first = next(iter(sorted((SITE / "posts").glob("*.md"))), None)
     if first:                                    # so /fonts/ and the favicon exist before any preview

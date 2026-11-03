@@ -45,6 +45,7 @@ from pathlib import Path
 
 import hashlib
 import json
+import os
 import subprocess
 import markdown
 from PIL import Image
@@ -752,6 +753,19 @@ def write(rel, content, image_bytes=0):
     p.write_text(content)
 
 
+def copy_if_changed(src, dst):
+    """shutil.copy2, skipped when dst already has src's size and modification time: the editor's
+    preview re-renders a post on every keystroke and needn't rewrite its images each time."""
+    s = os.stat(src)
+    try:
+        d = os.stat(dst)
+        if d.st_size == s.st_size and d.st_mtime_ns == s.st_mtime_ns:
+            return dst
+    except FileNotFoundError:
+        pass
+    return shutil.copy2(src, dst)
+
+
 def lightbox(p):
     """Posts with images load static/lightbox.js: click an image to see it larger. A video's
     thumbnail doesn't count; it plays instead."""
@@ -798,7 +812,7 @@ def render_post(p, base, post_t, listed_tags):
             sys.exit(f"{p['source']}: image {name} not found in {p['media']}")
         img_bytes += f.stat().st_size
     if p["media"].is_dir():
-        shutil.copytree(p["media"], OUT / p["slug"], dirs_exist_ok=True)
+        shutil.copytree(p["media"], OUT / p["slug"], dirs_exist_ok=True, copy_function=copy_if_changed)
     post_card(p)
     write(f"{p['slug']}/index.html", page_shell(base, p["title"], body, p["description"], post_meta(p), key=p["slug"], author=page_author(p)), img_bytes)
     if SITE.get("markdown_source"):

@@ -269,7 +269,7 @@ async function runPreview() {
   let r;
   try { r = (await api("POST", "/_api/preview", { path: cur.path, text: text.value, full })).data; }
   catch (e) { r = { ok: false, built: false, message: e.message }; needFull = needFull || full; }
-  if (seq !== previewSeq) return;
+  if (seq !== previewSeq || r.superseded) return;
   const c = $("checks");
   c.className = "checks " + (r.ok ? "ok" : "bad");
   c.textContent = r.ok ? "Checks pass" : r.message;
