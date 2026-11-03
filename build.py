@@ -483,9 +483,9 @@ def model_ld(p):
 
 def json_ld(data):
     """A <script type="application/ld+json"> block. It is data, so script-src in the CSP doesn't apply."""
-    text = json.dumps({"@context": "https://schema.org", **data}, ensure_ascii=False, separators=(",", ":"))
+    text = json.dumps({"@context": "https://schema.org", **data}, ensure_ascii=False, indent=2)
     text = text.replace("</", "<\\/")   # a "</script>" inside a string must not end the block
-    return f'\n<script type="application/ld+json">{text}</script>'
+    return f'\n<script type="application/ld+json">\n{text}\n</script>'
 
 
 CARD = "og-card.png"   # the generated share card's file name, beside each post and at the site root
@@ -634,6 +634,58 @@ def home_meta():
     return json_ld({"@type": "WebSite", "url": f'{SITE["url"]}/', "name": SITE["title"], "publisher": owner_ld()})
 
 
+# Tags whose contents the page source indents a level (pretty()). Inline tags such as <p>, <a> and
+# <span> aren't here: their lines stay as written.
+BLOCKS = {"head", "body", "header", "main", "footer", "nav", "article", "section", "aside", "div",
+          "ul", "ol", "li", "figure", "table", "thead", "tbody", "tfoot", "tr", "blockquote",
+          "details", "dialog", "form", "fieldset"}
+TAG = re.compile(r"<(/?)([a-zA-Z][a-zA-Z0-9]*)\b[^>]*?(/?)>")
+
+
+def pretty(html_text):
+    """The page source, indented two spaces per level of nesting so it reads well in view-source.
+
+    Only the start of a line changes, which HTML treats as the same single space, so the page
+    renders exactly as before. Lines inside <pre> and <textarea> (code, ASCII art) and inside
+    comments (the cat) keep every space; lines inside <script> (the JSON-LD) keep their own
+    indentation, shifted to sit under the tag."""
+    out, depth, raw, script = [], 0, None, False
+    for line in html_text.split("\n"):
+        if raw:                                   # verbatim until the closing marker
+            out.append(line)
+            if raw in line:
+                raw = None
+            continue
+        body = line.strip()
+        if not body:
+            out.append("")
+            continue
+        if body.startswith("<!--") and "-->" not in body:
+            out.append(line)
+            raw = "-->"
+            continue
+        if script:                                # JSON-LD: one level in, keeping its own indentation
+            if body == "</script>":
+                script = False
+                out.append("  " * depth + body)
+            else:
+                out.append("  " * (depth + 1) + line.rstrip())
+            continue
+        lead, rest = 0, body                      # closing tags first on the line: indent it less
+        while (m := re.match(r"</([a-zA-Z][a-zA-Z0-9]*)>\s*", rest)) and m.group(1).lower() in BLOCKS:
+            lead, rest = lead + 1, rest[m.end():]
+        out.append("  " * max(depth - lead, 0) + body)
+        script = body.startswith("<script") and "</script>" not in body
+        for m in TAG.finditer(body):
+            if m.group(2).lower() in BLOCKS and not m.group(3):
+                depth = max(depth + (-1 if m.group(1) else 1), 0)
+        for opener, closer in (("<pre", "</pre>"), ("<textarea", "</textarea>")):
+            i = body.rfind(opener)
+            if i >= 0 and closer not in body[i:]:
+                raw = closer
+    return "\n".join(out)
+
+
 def write(rel, content, image_bytes=0):
     p = OUT / rel
     p.parent.mkdir(parents=True, exist_ok=True)
@@ -645,6 +697,8 @@ def write(rel, content, image_bytes=0):
         content = content.replace("{page_kb} KB of HTML", weight).replace("{page_kb}", f"{kb:.1f}")
         if "<script src=" in content:   # a post with a live demo loads the demo's own script
             content = content.replace(" with no JavaScript,", ", with JavaScript only for this post's demos,")
+    if rel.endswith(".html"):
+        content = pretty(content)
     p.write_text(content)
 
 
@@ -773,7 +827,7 @@ def build():
             rows.append(f'<li{attrs}><span class="when"><time datetime="{p["date"].date().isoformat()}">'
                         f'{p["date"].strftime("%-d %b" if years else "%-d %b %Y")}</time>{writer_mark(p)}</span> '
                         f'<a href="/{p["slug"]}/">{esc(p["title"])}</a></li>')
-        rows = "".join(rows)
+        rows = "\n".join(rows)
         return render(template, heading=heading, posts=rows or "<li>Nothing yet.</li>")
 
     if SITE.get("card"):
