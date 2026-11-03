@@ -97,7 +97,8 @@ pre code { background: none; color: inherit; padding: 0; font-size: 1em; }
 .hl pre { margin: 0; }
 div.hl .gp { color: #6fbbea; font-weight: 400; user-select: none; }   /* the "$ ": not copied */
 div.hl .go { color: #e6edf3; }
-pre.ascii { font-size: .8rem; line-height: 1.4; }
+/* ASCII art (the 404 page's cat): plain text on the page, not a code panel. */
+pre.ascii { background: none; box-shadow: none; color: var(--muted); padding: 0; margin: 1.4rem 0; font-size: clamp(.55rem, 2.6vw, 1rem); line-height: 1.3; }
 @media (prefers-color-scheme: dark) { pre { background: #1c1f26; box-shadow: inset 0 0 0 1px #2b2f38; } }
 blockquote { position: relative; margin: 1.2rem 0 1.2rem 1.4rem; padding: 0; font-style: italic; }
 blockquote::before { content: "\201C"; position: absolute; left: -.75em; top: -.2em; font-size: 2.4rem; line-height: 1; color: var(--ink); font-style: normal; }

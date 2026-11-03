@@ -90,8 +90,7 @@ for p in $PAGES; do
   chk "$p 200"                            "200"                   "$(code "https://$D$p")"
 done
 chk "unknown path 404"                    "404"                   "$(code "https://$D/no-such-post/")"
-chk "404 page shows what curl really shows" "same"                "$(u="/no-such-post/"; page=$("${C[@]}" "https://$D$u" | sed -n '/<pre class="ascii"/,/<\/pre>/p' | sed '1d;$d' | sed 's/&amp;/\&/g'); real=$("${C[@]}" -I "https://$D$u" | tr -d '\r' | grep -E '^(HTTP|404-)' | sed 's/ *$//'); [[ "$page" == "$real" ]] && echo same || echo differs)"
-chk "404 page names the address asked for" "1"                    "$("${C[@]}" "https://$D/no-such-post/?a=<b>" | grep -c 'curl -sI https://jpain.io/no-such-post/?a=&lt;b&gt;')"
+chk "404 page is the site's own"          "1"                     "$("${C[@]}" "https://$D/no-such-post/" | grep -c '<h1>Page not found</h1>')"
 
 echo "--- headers (on every kind of response: no location may drop them)"
 for u in / "$POST" "$POST$IMG" /no-such-post/; do
