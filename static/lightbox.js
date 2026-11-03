@@ -34,8 +34,11 @@
     const fig = img.closest("figure");
     const fc = fig && fig.querySelector("figcaption");
     cap.replaceChildren();
-    if (fc) {
-      const n = [...document.querySelectorAll(".e-content figure")].filter((f) => f.querySelector("figcaption")).indexOf(fig) + 1;
+    if (fc && fig.closest(".gallery")) {        // a gallery item: its own caption, not a figure number
+      cap.append(...[...fc.cloneNode(true).childNodes]);
+    } else if (fc) {
+      const n = [...document.querySelectorAll(".e-content figure")]
+        .filter((f) => f.querySelector(":scope > figcaption") && !f.closest(".gallery")).indexOf(fig) + 1;
       const b = document.createElement("b");
       b.textContent = `Figure ${n}. `;
       cap.append(b, fc.textContent);

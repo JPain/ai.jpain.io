@@ -578,16 +578,29 @@ async function imageDialog(name, info) {
   const note = document.createElement("p");
   note.className = "hint";
   note.textContent = info ? `${name}: ${info.width}×${info.height}, ${info.kb} KB.` : `${name}: ${known.kb} KB.`;
-  const size = radios("Size on the page", "size", SIZES, "");
+  // Straight after an image (blank lines aside), it can join that image's row: a gallery.
+  const before = text.value.slice(0, text.selectionStart).replace(/\s+$/, "");
+  const prevLine = before.slice(before.lastIndexOf("\n") + 1);
+  const afterImage = /^!\[[^\]]*\]\([^)]*\)(\{[^}]*\})?$/.test(prevLine);
+  const size = radios("Size on the page", "size",
+    afterImage ? [["beside", "Beside the image above", "Side by side in a row (a gallery), each with its own caption."], ...SIZES] : SIZES,
+    afterImage ? "beside" : "");
   const alt = field("Alt text", "textarea", { rows: 2, placeholder: "What the image shows",
     hint: "Read out to people who can't see it, and shown if it doesn't load. Required." });
-  const cap = field("Caption", "input", { placeholder: "Optional", hint: "Shown under the image." });
+  const cap = field("Caption", "input", { placeholder: "Optional", hint: "Shown under the image. **Bold** text becomes a label on its own line." });
   const v = await ask("Insert image", group(img, note, size, alt, cap), [["Cancel", "cancel"], ["Insert", "ok", "primary"]], "",
     { validate: () => alt.input.value.trim() ? "" : "Write the alt text first." });
   if (v !== "ok") { text.focus(); return; }
   const a = alt.input.value.trim().replace(/\s+/g, " ");
   const c = cap.input.value.trim();
-  insert(`![${mdText(a)}](${name}${c ? mdTitle(c) : ""})${size.value() ? `{.${size.value()}}` : ""}`);
+  const md = `![${mdText(a)}](${name}${c ? mdTitle(c) : ""})`;
+  if (size.value() === "beside") {              // the next line after the image above: same paragraph
+    const end = before.length, to = Math.max(text.selectionEnd, end);
+    const rest = text.value.slice(to);         // keep a blank line after the row
+    edit(end, to, "\n" + md + (rest.startsWith("\n\n") ? "" : rest.startsWith("\n") ? "\n" : rest ? "\n\n" : "\n"));
+    return;
+  }
+  insert(md + (size.value() ? `{.${size.value()}}` : ""));
 }
 
 // The upload lands in the folder of the saved slug, so unsaved changes are saved first.

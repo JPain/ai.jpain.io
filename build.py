@@ -60,6 +60,8 @@ IMAGE_TYPES = {".webp", ".png", ".jpg", ".jpeg", ".svg", ".gif"}
 IMAGE_MAX_KB = 300        # per image
 POST_IMAGES_MAX_KB = 1500  # all images in one post
 IMG_P = re.compile(r'<p>(<img [^>]*>)</p>')
+# A gallery: two or more images on consecutive lines (no blank line between) share a paragraph.
+GALLERY_P = re.compile(r'<p>((?:<img [^>]*>\s*){2,})</p>')
 IMG_TAG = re.compile(r'<img ([^>]*)>')
 ATTR = re.compile(r'(\w+)="([^"]*)"')
 
@@ -95,6 +97,13 @@ def images_in(html_text):
     return [dict(ATTR.findall(m.group(1))) for m in IMG_TAG.finditer(html_text)]
 
 
+def caption(title):
+    """An image's caption from its title: **bold** and *italic* work in it (the label of a gallery
+    item, say: "**Uncommon** 1 in 100+ soups")."""
+    t = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", title)
+    return re.sub(r"(?<![\w*])\*(?!\s)(.+?)(?<!\s)\*(?![\w*])", r"<em>\1</em>", t)
+
+
 def figures(html_text, folder):
     """<p><img></p> -> <figure> with caption from the title; add size and lazy loading to every img."""
     def tag(m):
@@ -110,10 +119,16 @@ def figures(html_text, folder):
 
     def fig(m):
         a = dict(ATTR.findall(m.group(1)))
-        cap = f'<figcaption>{a["title"]}</figcaption>' if a.get("title") else ""
+        cap = f'<figcaption>{caption(a["title"])}</figcaption>' if a.get("title") else ""
         return f'<figure>{IMG_TAG.sub(tag, m.group(1))}{cap}</figure>'
 
-    out = IMG_P.sub(fig, html_text)
+    def gallery(m):
+        imgs = IMG_TAG.findall(m.group(1))
+        inner = "\n".join(fig(re.match(r"(.*)", f"<img {i}>")) for i in imgs)
+        return f'<figure class="gallery cols-{min(len(imgs), 6)}">\n{inner}\n</figure>'
+
+    out = GALLERY_P.sub(gallery, html_text)
+    out = IMG_P.sub(fig, out)
     # Keyboard users can scroll a wide code block or table only if it can take focus (WCAG 2.1.1).
     out = out.replace("<pre>", '<pre tabindex="0">')
     out = re.sub(r"<table>(.*?)</table>", r'<div class="table-scroll" tabindex="0"><table>\1</table></div>', out, flags=re.S)
