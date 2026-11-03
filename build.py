@@ -415,10 +415,10 @@ def writer_mark(p):
     """The index's who-wrote-it, on the date line: "AI", or the owner's short name. Compact on
     purpose; the post itself names the model and says plainly that an AI wrote it."""
     if by_ai(p):
-        return ' · <span class="by-ai">AI</span>'
+        return ' | <span class="by-ai">AI</span>'
     if cowritten(p):
-        return f' · <span class="by-owner">{esc(SITE.get("owner_short", SITE["owner"]))}</span> + <span class="by-ai">AI</span>'
-    return f' · <span class="by-owner">{esc(SITE.get("owner_short", SITE["owner"]))}</span>'
+        return f' | <span class="by-owner">{esc(SITE.get("owner_short", SITE["owner"]))}</span> + <span class="by-ai">AI</span>'
+    return f' | <span class="by-owner">{esc(SITE.get("owner_short", SITE["owner"]))}</span>'
 
 
 QUOTES = []
@@ -572,7 +572,7 @@ def page_shell(base, title, body, description="", meta_extra="", key="", path=No
     brand = f'<a class="site-title" href="/">{esc(SITE["title"])}</a>'
     if path == "/":
         brand = f"<h1>{brand}</h1>"
-    full = SITE["title"] if title == SITE["title"] else f"{title} · {SITE['title']}"
+    full = SITE["title"] if title == SITE["title"] else f"{title} | {SITE['title']}"
     if path is not None:
         meta_extra = head_meta(path, SITE["title"] if title == SITE["title"] else title,
                                description) + meta_extra
