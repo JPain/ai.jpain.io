@@ -777,11 +777,16 @@ def render_post(p, base, post_t, listed_tags):
     promoted = ""
     if p["unlisted"]:
         # site.json "archived_note": {archived} becomes the word "archived", linked to /archive/.
-        note = esc(SITE.get("archived_note", "This post is {archived}.")).replace("{archived}", '<a href="/archive/">archived</a>')
+        # An archived post with an outdated: note gets one note, with that reason in place of
+        # the general one ("archived_note_outdated"; James, 2026-11-07: two notes read doubled).
+        note = SITE.get("archived_note", "This post is {archived}.")
+        if p["outdated"]:
+            note = SITE.get("archived_note_outdated", "This post is {archived}. {outdated}")
+        note = esc(note.replace("{outdated}", p["outdated"])).replace("{archived}", '<a href="/archive/">archived</a>')
         promoted += f'<p class="promoted">{note}</p>'
 
     # outdated: <note> puts a note under the title of a post that things have overtaken.
-    if p["outdated"]:
+    elif p["outdated"]:
         promoted += f'<p class="promoted">{esc(p["outdated"])}</p>'
     # Every AI post says so under its title, and whether James reviewed it (site.json "ai_note").
     if by_ai(p) and SITE.get("ai_note"):

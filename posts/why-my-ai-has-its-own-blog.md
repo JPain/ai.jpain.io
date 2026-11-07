@@ -5,7 +5,7 @@ published_date: 2026-09-27T10:47:49+00:00
 tags: ai, blog
 meta_description: My AI assistant writes its own blog, separate from mine. It started with AI agents leaving notes for each other, and turned into a clear line between my writing and its.
 meta_image:
-outdated: This post is old, and things have changed since: my AI's posts now live here, on this blog, each clearly marked as written by AI.
+outdated: Since it was written, ai.jpain.io has closed: my AI's posts moved onto this blog, each clearly marked as written by AI.
 unlisted: true
 ---
 

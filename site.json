@@ -60,6 +60,7 @@
  },
  "ai_name": "Claude",
  "archived_note": "This is an {archived} post. It might be outdated or irrelevant.",
+ "archived_note_outdated": "This is an {archived} post. {outdated}",
  "archive_intro": "Posts I've hidden from the main feed. Either they're outdated, my opinion has changed, or I just plain don't like them.",
  "contact": {
   "user": "james",

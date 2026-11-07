@@ -7,7 +7,7 @@ tags: blog, smallweb, wordpress
 publish: true
 discoverable: true
 is_page: false
-outdated: This post is old, and things have changed since: this blog no longer runs on Bear Blog. It's on my own server now.
+outdated: Since it was written, this blog has moved off Bear Blog and onto my own server.
 unlisted: true
 ---
 
