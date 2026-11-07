@@ -27,7 +27,7 @@ zone; defaults to now), tags (comma-separated), summary or meta_description (one
 index, feed and description meta), meta_image (share image; defaults to the post's first image),
 updated (date of a real revision: dateModified and sitemap lastmod), author (byline override),
 publish (false = not built), unlisted (true = built at its address but left off
-the home page, tags, feeds and sitemap, listed only on /archive/, and noindex), outdated (a note under the title of a post things have
+the home page, tags and feeds, listed only on /archive/; still indexable and in the sitemap), outdated (a note under the title of a post things have
 overtaken), model and model_id (a post that names a model was written by
 that AI, and says so; every other post is the owner's), cowritten (with model and model_id: the
 owner and that AI wrote it together; the value is the note under the title, saying plainly who did
@@ -658,8 +658,6 @@ def post_meta(p):
     url = f'{SITE["url"]}/{p["slug"]}/'
     image = post_image(p)
     out = f'<meta name="ai-model" content="{esc(p["model_id"])}">\n' if p["model_id"] else ""
-    if p["unlisted"]:
-        out += '<meta name="robots" content="noindex">\n'
     out += head_meta(f'/{p["slug"]}/', p["title"], p["description"], "article", image)
     # Kept to what search engines use: the headline, dates, author and image (2026-11-03).
     ld = {"@type": "BlogPosting", "url": url, "headline": p["title"],
@@ -851,8 +849,9 @@ def build():
         if p["slug"] in seen:
             sys.exit(f"duplicate slug {p['slug']}")
         seen.add(p["slug"])
-    # unlisted: true keeps a post at its address but off the home page, tags, feeds and sitemap
-    # (James, 2026-11-01: old posts he no longer likes); /archive/ lists them.
+    # unlisted: true keeps a post at its address but off the home page, tags and feeds
+    # (James, 2026-11-01: old posts he no longer likes); /archive/ lists them. Search engines may
+    # still index them, and the sitemap lists them (James, 2026-11-07: the notes on them cover him).
     listed = [p for p in posts if not p["unlisted"]]
     archived = [p for p in posts if p["unlisted"]]
     listed_tags = {tag_slug(t) for p in listed for t in p["tags"]}
@@ -916,7 +915,7 @@ def build():
     if archived:
         write("archive/index.html", page_shell(
             base, "Archive", listing(archived, f'<h1>Archive</h1><p>{esc(SITE.get("archive_intro", ""))}</p>'),
-            f"Archived posts on {SITE['title']}.", meta_extra='<meta name="robots" content="noindex">', path="/archive/"))
+            f"Archived posts on {SITE['title']}.", path="/archive/"))
     if tags:
         tl = "".join(f'<li><a href="/tags/{esc(ts)}/">{esc(sorted(by_slug[ts])[0])}</a></li>' for ts in tags)
         write("tags/index.html", page_shell(base, "Tags", f"<h1>Tags</h1><ul class=\"tags\">{tl}</ul>",
@@ -944,7 +943,8 @@ def build():
     # sitemap + robots + llms.txt
     # <lastmod>: a post's updated (or published) date, the newest post for the lists, a page's last commit.
     newest = max((p["updated"] for p in posts), default=None)
-    entries = [("/", newest)] + [(f"/{p['slug']}/", p["updated"]) for p in posts] \
+    entries = [("/", newest)] + [(f"/{p['slug']}/", p["updated"]) for p in posts + archived] \
+        + ([("/archive/", max(p["updated"] for p in archived))] if archived else []) \
         + [(f"/{x['path']}/", newest) for x in SITE.get("post_lists", [])] \
         + [(f"/{slug}/", when) for slug, when in page_dates.items()]
     write("sitemap.xml", '<?xml version="1.0" encoding="utf-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
