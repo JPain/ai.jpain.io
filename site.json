@@ -59,8 +59,8 @@
   "cowritten": "{cowritten} For more information, see"
  },
  "ai_name": "Claude",
- "archived_note": "This is an old post, archived: it's no longer listed on the blog.",
- "archive_intro": "Posts I've taken off the blog because I don't like them any more: either I don't like the writing, or I no longer agree with what it says. They stay here so links to them keep working.",
+ "archived_note": "This is an {archived} post. It might be outdated or irrelevant.",
+ "archive_intro": "Posts I've hidden from the main feed. Either they're outdated, my opinion has changed, or I just plain don't like them.",
  "contact": {
   "user": "james",
   "domain": "jpain.io",

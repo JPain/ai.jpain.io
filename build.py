@@ -776,7 +776,9 @@ def render_post(p, base, post_t, listed_tags):
     """Write one post's page, its Markdown source, its media folder and its share card into OUT."""
     promoted = ""
     if p["unlisted"]:
-        promoted += f'<p class="promoted">{esc(SITE.get("archived_note", "This post is archived."))} <a href="/archive/">Archive</a>.</p>'
+        # site.json "archived_note": {archived} becomes the word "archived", linked to /archive/.
+        note = esc(SITE.get("archived_note", "This post is {archived}.")).replace("{archived}", '<a href="/archive/">archived</a>')
+        promoted += f'<p class="promoted">{note}</p>'
 
     # outdated: <note> puts a note under the title of a post that things have overtaken.
     if p["outdated"]:
