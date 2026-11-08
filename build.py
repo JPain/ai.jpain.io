@@ -31,7 +31,10 @@ the home page, tags and feeds, listed only on /archive/; still indexable and in 
 overtaken), model and model_id (a post that names a model was written by
 that AI, and says so; every other post is the owner's), cowritten (with model and model_id: the
 owner and that AI wrote it together; the value is the note under the title, saying plainly who did
-what and naming the model).
+what and naming the model), discuss (where the post is being discussed, for the "Thanks for
+reading" block: "Hacker News https://..., Mastodon https://...").
+Footnotes: [^name] in the text and "[^name]: the note" on its own line; they're numbered in order
+and listed at the end of the post, each linking back to its marker.
 Everything else is ignored.
 """
 import base64
@@ -241,8 +244,12 @@ def terminal_fences(body):
     return "\n".join(out)
 
 
-MD_EXTENSIONS = ["tables", "fenced_code", "codehilite", "toc", "smarty", "attr_list"]
-MD_CONFIG = {"codehilite": {"css_class": "hl", "guess_lang": False}}
+MD_EXTENSIONS = ["tables", "fenced_code", "codehilite", "toc", "smarty", "attr_list", "footnotes"]
+# Footnotes: [^name] in the text, "[^name]: the note" anywhere; they gather in a numbered list at the
+# end of the post, each with a link back to its marker (James, 2026-11-08, after caleb.software).
+# U+FE0E keeps the return arrow a text glyph: iOS otherwise draws it as an emoji.
+MD_CONFIG = {"codehilite": {"css_class": "hl", "guess_lang": False},
+             "footnotes": {"BACKLINK_TEXT": "\u21a9\ufe0e", "BACKLINK_TITLE": "Back to note %d in the text"}}
 
 
 def read_template(name):
@@ -384,6 +391,7 @@ def parse(path):
         "publish": meta.get("publish", "true").lower() != "false",
         "unlisted": meta.get("unlisted", "").strip().lower() in ("true", "yes"),
         "outdated": meta.get("outdated", ""),
+        "discuss": meta.get("discuss", ""),
         "model": meta.get("model", ""),
         "model_id": meta.get("model_id", ""),
         "cowritten": meta.get("cowritten", ""),
@@ -487,7 +495,7 @@ def quote_for(key):
 _POW = {}   # contact_email()'s answer per address: the search is the slow part of a build
 
 
-def contact_email():
+def contact_email(inline=False):
     """The contact address behind a quiet proof-of-work (static/contact.js), never plain text in the HTML.
     The browser hashes "<challenge>:<n>" for n = 0, 1, 2... until a SHA-256 starts with POW_BITS zero
     bits; the address is XORed with SHA-256 of "<challenge>:<n>:key" for that first n, so it can't be
@@ -504,10 +512,12 @@ def contact_email():
     _POW[(challenge, bits)] = n
     key = hashlib.sha256(f"{challenge}:{n}:key".encode()).digest()
     cipher = base64.b64encode(bytes(a ^ k for a, k in zip(addr, key))).decode()
-    return (f'<p class="contact">Email: <button type="button" class="pow-start" '
-            f'data-c="{challenge}" data-bits="{bits}" data-x="{cipher}">Show email address</button>'
-            '<span class="pow-status" aria-live="polite"></span></p>'
-            '<script src="/contact.js" defer></script>')
+    button = (f'<button type="button" class="pow-start" data-c="{challenge}" data-bits="{bits}" data-x="{cipher}">'
+              f'{"show email address" if inline else "Show email address"}</button>'
+              '<span class="pow-status" aria-live="polite"></span>')
+    if inline:   # mid-sentence, as in the "Thanks for reading" paragraph
+        return f'<span class="contact">{button}</span><script src="/contact.js" defer></script>'
+    return f'<p class="contact">Email: {button}</p><script src="/contact.js" defer></script>'
 
 
 def rfc_box(codes):
@@ -772,6 +782,33 @@ def lightbox(p):
     return ""
 
 
+def thanks(p):
+    """The "Thanks for reading" paragraph under every post (site.json "thanks"): a line or two from the
+    author, the email button mid-sentence, and where the post is being discussed (its discuss: header,
+    "Hacker News https://..., Twitter/X https://..."). Not part of the post's content, so feeds leave it out."""
+    t = SITE.get("thanks")
+    if not t:
+        return ""
+    ai = by_ai(p)
+    text = t.get("ai_text", t["text"]) if ai else t["text"]     # opening line ("I hope you enjoyed...")
+    ask = t.get("ai_ask", t["ask"]) if ai else t["ask"]          # "I'd love to hear what you think."
+    email = t.get("ai_email", t["email"]) if ai else t["email"]
+    links = []
+    for item in (x.strip() for x in p["discuss"].split(",")):
+        name, _, url = item.rpartition(" ")
+        if name and url.startswith("https://"):
+            links.append(f'<a href="{esc(url)}">{esc(name.strip())}</a>')
+    # "A", "A and B", "A, B, and C"
+    joined = (links[0] if len(links) == 1 else " and ".join(links) if len(links) == 2
+              else ", ".join(links[:-1]) + ", and " + links[-1]) if links else ""
+    sentence = f'{esc(email)} {contact_email(inline=True)}'
+    sentence += f', {esc(t["discuss"])} {joined}.' if joined else "."
+    # "...follow the RSS feed." The place to add an email-newsletter option when there is one.
+    feed = f'{esc(t["feed"])} <a href="/feed.xml">RSS feed</a>.' if t.get("feed") else ""
+    return (f'<section class="thanks" aria-labelledby="thanks-h"><h2 id="thanks-h">{esc(t.get("heading", "Thanks for reading"))}</h2>'
+            f'<p>{" ".join(x for x in (esc(text), feed, esc(ask), sentence) if x)}</p></section>')
+
+
 def render_post(p, base, post_t, listed_tags):
     """Write one post's page, its Markdown source, its media folder and its share card into OUT."""
     promoted = ""
@@ -806,6 +843,7 @@ def render_post(p, base, post_t, listed_tags):
         author=byline(p),
         promoted=promoted,
         content=p["html"] + rfc_box(p["rfcs"]) + lightbox(p),
+        thanks=thanks(p),
     )
     # Everything in the post's media folder is published beside it: images the
     # post shows, and the files a live demo needs (.js, .css, .html, data).
@@ -1114,6 +1152,8 @@ def check_images(post):
         used |= set(re.findall(r'data-b="([^"/]+)"', post["html"]))
         # ...and a <video>'s poster frame.
         used |= set(re.findall(r'poster="([^"/]+)"', post["html"]))
+        # ...and an image an inline style draws, such as a background: url(paper.webp).
+        used |= set(re.findall(r'url\(\s*[\'"]?([^\'")/\s]+)[\'"]?\s*\)', post["html"]))
         # ...and the share-card image named by meta_image.
         if post.get("image") and "/" not in post["image"]:
             used.add(post["image"])

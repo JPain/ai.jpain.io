@@ -392,16 +392,20 @@ function morph(old, fresh) {
 // Attributes the page's own scripts add (lightbox.js marks images it can enlarge): not changes.
 const RUNTIME = new Set(["tabindex", "role", "aria-label"]);
 const sameClass = (el, v) => (el.getAttribute("class") || "").replace(/\s*\bzoomable\b/, "").trim() === v.trim();
+// Works on the markup as text. Cloning a node in the live preview would start loading every
+// <video> inside it, and an autoplaying one keeps playing, hidden, for as long as the page is
+// open: three per keystroke for a post with a video header (2026-11-07).
 function keyOf(n) {
   if (n.nodeType !== 1) return n.nodeType + ":" + n.data;
-  const c = n.cloneNode(true);
-  for (const img of [c, ...c.querySelectorAll("img")]) {
-    if (img.tagName !== "IMG" || !img.classList.contains("zoomable")) continue;
-    img.classList.remove("zoomable");
-    if (!img.classList.length) img.removeAttribute("class");
-    RUNTIME.forEach((a) => img.removeAttribute(a));
-  }
-  return c.outerHTML;
+  return n.outerHTML.replace(/<img\b[^>]*>/g, (tag) => {
+    if (!/\sclass="[^"]*\bzoomable\b/.test(tag)) return tag;
+    tag = tag.replace(/\sclass="([^"]*)"/, (m, v) => {
+      const c = v.split(/\s+/).filter((k) => k && k !== "zoomable").join(" ");
+      return c ? ` class="${c}"` : "";
+    });
+    RUNTIME.forEach((a) => (tag = tag.replace(new RegExp(`\\s${a}="[^"]*"`), "")));
+    return tag;
+  });
 }
 
 // ---------------------------------------------------------------- editing helpers

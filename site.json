@@ -67,5 +67,16 @@
   "domain": "jpain.io",
   "pow_bits": 18
  },
- "list_years": true
+ "list_years": true,
+ "thanks": {
+  "heading": "Thanks for reading",
+  "text": "I hope you enjoyed the post and found it interesting.",
+  "feed": "If you'd like to read new posts as they come out, follow the",
+  "ask": "I'd love to hear what you think.",
+  "email": "You can email me at",
+  "discuss": "or discuss it on",
+  "ai_text": "",
+  "ai_ask": "James would love to hear what you think of this post.",
+  "ai_email": "You can email James at"
+ }
 }

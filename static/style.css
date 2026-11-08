@@ -105,6 +105,19 @@ pre.ascii { background: none; box-shadow: none; color: var(--muted); padding: 0;
 blockquote { position: relative; margin: 1.2rem 0 1.2rem 1.4rem; padding: 0; font-style: italic; }
 blockquote::before { content: "\201C"; position: absolute; left: -.75em; top: -.2em; font-size: 2.4rem; line-height: 1; color: var(--ink); font-style: normal; }
 hr { border: 0; border-top: 1px solid var(--rule); margin: 2rem 0; }
+/* Footnotes (build.py MD_CONFIG): a small superscript marker, notes in a smaller numbered list at the end. */
+sup .footnote-ref { text-decoration: none; padding: 0 .1em; }
+.footnote { margin-top: 2.5rem; font-size: .9rem; color: var(--muted); }
+.footnote hr { margin: 0 0 1rem; width: 6rem; }
+.footnote ol { padding-left: 1.4rem; }
+.footnote li { margin: .4rem 0; }
+.footnote li p { margin: 0; }
+.footnote-backref { text-decoration: none; margin-left: .3em; }
+.footnote li:target { color: var(--fg); }
+/* "Thanks for reading" under each post (build.py thanks()). */
+.thanks { margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--rule); }
+.thanks h2 { margin-top: 0; }
+.thanks p { margin: .5rem 0; }
 /* Notes: "> [!NOTE] Label" (build.py note_blocks). A tinted box with the ink rule, not a quotation. */
 aside.note { margin: 1.6rem 0; padding: .75rem 1.1rem; border-left: 3px solid var(--ink); background: var(--note); font-size: .95rem; max-width: 38rem; }
 aside.note p { margin: .45rem 0; }
@@ -115,6 +128,15 @@ figure img, figure video { display: block; }
 .e-content figure:has(figcaption) { counter-increment: fig; }
 figcaption { color: var(--muted); font-size: .88rem; font-style: italic; margin-top: .4rem; }
 figcaption::before { content: "Figure " counter(fig) ". "; font-style: normal; font-weight: 700; color: var(--ink); }
+/* Credit for a post's hero art: a small "i" in the corner that opens to one line on hover, focus or tap.
+   The text stays in the page (not display:none), so screen readers and feeds still get it. */
+.hero-credit { position: absolute; right: 0; bottom: 0; z-index: 2; display: flex; align-items: center; height: 44px; min-width: 44px;
+  background: rgba(20, 18, 16, .78); color: #fff; font-size: .95rem; line-height: 1; cursor: default; outline-offset: -4px; }
+.hero-credit-i { width: 44px; text-align: center; font: italic 700 1.2rem/1 Georgia, serif; flex: none; }
+.hero-credit-i::before { content: "i"; } /* drawn by CSS so feeds, which drop styles, show only the credit text */
+.hero-credit-text { max-width: 0; overflow: hidden; white-space: nowrap; opacity: 0; transition: max-width .25s, opacity .25s; }
+.hero-credit:hover .hero-credit-text, .hero-credit:focus .hero-credit-text { max-width: 20rem; opacity: 1; padding-right: 14px; }
+@media (prefers-reduced-motion: reduce) { .hero-credit-text { transition: none; } }
 img.pixel { image-rendering: pixelated; }
 figcaption b { font-style: normal; color: var(--label, var(--fg)); }
 /* Caption label colours: ![alt](x.webp "**Label** detail"){.green} colours that image's bold label
