@@ -60,6 +60,10 @@ p, li { max-width: 38rem; }
 .meta .author::after { content: ", "; color: var(--muted); }
 .meta .tags::before { content: " — "; }
 .meta .tags a { color: var(--muted); }
+/* "Not written by AI" (build.py not_ai_mark): its own line under the date and tags. */
+.meta .not-ai { display: block; margin-top: .35rem; }
+.meta .not-ai a { color: var(--muted); text-decoration: none; display: inline-flex; gap: .3em; align-items: center; }
+.meta .not-ai a span { text-decoration: underline dotted; text-underline-offset: .2em; }
 
 .promoted { border-left: 3px solid var(--rule); padding: .1rem 0 .1rem 1rem; color: var(--muted); font-size: .95rem; }
 .promoted a { color: var(--link); }

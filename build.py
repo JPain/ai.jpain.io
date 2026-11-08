@@ -32,7 +32,8 @@ overtaken), model and model_id (a post that names a model was written by
 that AI, and says so; every other post is the owner's), cowritten (with model and model_id: the
 owner and that AI wrote it together; the value is the note under the title, saying plainly who did
 what and naming the model), discuss (where the post is being discussed, for the "Thanks for
-reading" block: "Hacker News https://..., Mastodon https://...").
+reading" block: "Hacker News https://..., Mastodon https://..."), human (no = leave off the
+"Not written by AI" line an owner's post otherwise shows under its date and tags).
 Footnotes: [^name] in the text and "[^name]: the note" on its own line; they're numbered in order
 and listed at the end of the post, each linking back to its marker.
 Everything else is ignored.
@@ -392,6 +393,7 @@ def parse(path):
         "unlisted": meta.get("unlisted", "").strip().lower() in ("true", "yes"),
         "outdated": meta.get("outdated", ""),
         "discuss": meta.get("discuss", ""),
+        "human": meta.get("human", "yes").strip().lower() not in ("no", "false"),
         "model": meta.get("model", ""),
         "model_id": meta.get("model_id", ""),
         "cowritten": meta.get("cowritten", ""),
@@ -468,6 +470,20 @@ def author_name(p):
 
 def byline(p):
     return f'<span class="author p-author">By {esc(author_name(p))}</span>'
+
+
+NIB = ('<svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden="true"><path d="M12 2.5 18 10l-6 11.5L6 10Z" '
+       'fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 12v9.5" '
+       'stroke="currentColor" stroke-width="1.4"/><circle cx="12" cy="11" r="1.6" fill="currentColor"/></svg>')
+
+
+def not_ai_mark(p):
+    """The quiet counterpart to the AI notes (James, 2026-11-08): an owner's post ends its byline block
+    with a pen nib and "Not written by AI", linked to the About page's AI attribution section. A post
+    whose words had AI help sets human: no and shows nothing. AI and joint posts never get it."""
+    if by_ai(p) or cowritten(p) or not p["human"]:
+        return ""
+    return f'<span class="not-ai"><a href="/about/#ai-attribution">{NIB}<span>Not written by AI</span></a></span>'
 
 
 def writer_mark(p):
@@ -824,6 +840,7 @@ def render_post(p, base, post_t, listed_tags):
         slug=p["slug"],
         tags=tag_links(p["tags"], listed_tags),
         author=byline(p),
+        not_ai=not_ai_mark(p),
         promoted=promoted,
         content=p["html"] + rfc_box(p["rfcs"]) + lightbox(p),
         thanks=thanks(p),
