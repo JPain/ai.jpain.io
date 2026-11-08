@@ -182,10 +182,6 @@ footer a, footer a:visited { color: var(--muted); }
 .rfcs .label { display: block; font-weight: 700; color: var(--ink); }
 .rfcs ul { margin: 0; padding-left: 1.2rem; columns: 2; }
 
-/* The email on About: "Show email address" runs a quiet proof-of-work (static/contact.js). */
-button.pow-start { font: inherit; color: var(--link); background: none; border: 0; padding: 0; text-decoration: underline; cursor: pointer; }
-.pow-status { color: var(--muted); }
-
 /* YouTube videos (build.py youtube_embeds, static/youtube.js): the thumbnail, then the player. */
 .yt { position: relative; display: block; width: 100%; aspect-ratio: 16 / 9; border: 0; overflow: hidden; background: #000; color: #fff; text-decoration: none; }
 .yt img { display: block; width: 100%; height: 100%; object-fit: cover; }

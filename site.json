@@ -64,8 +64,7 @@
  "archive_intro": "Posts I've hidden from the main feed. Either they're outdated, my opinion has changed, or I just plain don't like them.",
  "contact": {
   "user": "james",
-  "domain": "jpain.io",
-  "pow_bits": 18
+  "domain": "jpain.io"
  },
  "list_years": true,
  "thanks": {

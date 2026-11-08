@@ -492,32 +492,15 @@ def quote_for(key):
             f'{esc(q["src"])}.</span></p>')
 
 
-_POW = {}   # contact_email()'s answer per address: the search is the slow part of a build
-
-
 def contact_email(inline=False):
-    """The contact address behind a quiet proof-of-work (static/contact.js), never plain text in the HTML.
-    The browser hashes "<challenge>:<n>" for n = 0, 1, 2... until a SHA-256 starts with POW_BITS zero
-    bits; the address is XORed with SHA-256 of "<challenge>:<n>:key" for that first n, so it can't be
-    read without doing the work. Deterministic: the same address always builds the same page."""
+    """The contact address as a plain mailto link (site.json "contact"). It was behind a proof-of-work
+    button until 2026-11-08; James dropped that: spam arrived anyway and the plain link is simpler."""
     c = SITE.get("contact")
     if not c:
         return ""
-    addr = f'{c["user"]}@{c["domain"]}'.encode()
-    bits = c.get("pow_bits", 18)
-    challenge = hashlib.sha256(f'{SITE["url"]} contact {c["user"]} {c["domain"]}'.encode()).hexdigest()[:16]
-    n = _POW.get((challenge, bits), 0)
-    while int.from_bytes(hashlib.sha256(f"{challenge}:{n}".encode()).digest(), "big") >> (256 - bits):
-        n += 1
-    _POW[(challenge, bits)] = n
-    key = hashlib.sha256(f"{challenge}:{n}:key".encode()).digest()
-    cipher = base64.b64encode(bytes(a ^ k for a, k in zip(addr, key))).decode()
-    button = (f'<button type="button" class="pow-start" data-c="{challenge}" data-bits="{bits}" data-x="{cipher}">'
-              f'{"show email address" if inline else "Show email address"}</button>'
-              '<span class="pow-status" aria-live="polite"></span>')
-    if inline:   # mid-sentence, as in the "Thanks for reading" paragraph
-        return f'<span class="contact">{button}</span><script src="/contact.js" defer></script>'
-    return f'<p class="contact">Email: {button}</p><script src="/contact.js" defer></script>'
+    addr = esc(f'{c["user"]}@{c["domain"]}')
+    link = f'<a href="mailto:{addr}">{addr}</a>'
+    return link if inline else f'<p class="contact">Email: {link}</p>'
 
 
 def rfc_box(codes):
@@ -971,7 +954,7 @@ def build():
     for path in sorted((ROOT / "pages").glob("*.md")):
         pg = parse(path)
         meta = f'<p class="meta">{byline(pg)}</p>' if pg["byline"] else ""
-        # <!-- contact-email --> in a page becomes a "Show email address" button (site.json "contact":
+        # <!-- contact-email --> in a page becomes the email address as a link (site.json "contact":
         # {"user", "domain"}, kept apart so the repo has no address either). Nothing while it is unset.
         pg["html"] = pg["html"].replace("<!-- contact-email -->", contact_email())
         body = f'<article><h1>{esc(pg["title"])}</h1>{meta}{pg["html"]}</article>'
