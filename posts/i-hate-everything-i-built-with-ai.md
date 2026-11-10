@@ -3,6 +3,7 @@ title: I hate everything I vibe-coded. Here they are.
 slug: i-hate-everything-i-vibe-coded
 published_date: 2026-11-10 12:20
 tags: ai, coding
+discuss: Hacker News https://news.ycombinator.com/item?id=50439403, Twitter/X https://x.com/jpainio/status/2120133959996641365, Fosstodon https://fosstodon.org/@jpain/117592187747501240
 meta_description: Projects I vibe-coded with AI and then abandoned: a Game of Life card game, an endless AI TV channel, coding by voice, rolling IT news, and my own business website.
 meta_image: slots-grid.webp
 ---
