@@ -803,7 +803,11 @@ def thanks(p):
     sentence = f'{esc(email)} {contact_email(inline=True)}'
     sentence += f', {esc(t["discuss"])} {joined}.' if joined else "."
     # "...follow the RSS feed." The place to add an email-newsletter option when there is one.
-    feed = f'{esc(t["feed"])} <a href="/feed.xml">RSS feed</a>.' if t.get("feed") else ""
+    # The newsletter's sign-up (news.jpain.io, ../newsletter) joins the feed sentence once
+    # "subscribe_url" is set: "...follow the RSS feed or subscribe by email."
+    sub = (f' {esc(t["subscribe"])} <a href="{esc(t["subscribe_url"])}">{esc(t.get("subscribe_link", "by email"))}</a>'
+           if t.get("subscribe_url") else "")
+    feed = f'{esc(t["feed"])} <a href="/feed.xml">RSS feed</a>{sub}.' if t.get("feed") else ""
     return (f'<section class="thanks" aria-labelledby="thanks-h"><h2 id="thanks-h">{esc(t.get("heading", "Thanks for reading"))}</h2>'
             f'<p>{" ".join(x for x in (esc(text), feed, esc(ask), sentence) if x)}</p></section>')
 

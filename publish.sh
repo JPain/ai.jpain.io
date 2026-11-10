@@ -25,7 +25,9 @@ if [ $# -ge 1 ]; then
   fi
   "$PY" build.py --check "$dst"
   msg="Publish: $(grep -m1 '^title:' "$dst" | cut -d: -f2- | sed 's/^ *//')"
-  MODEL="$(grep -m1 '^model:' "$dst" | cut -d: -f2- | sed 's/^ *//')"
+  # || true: James' own posts have no model: line, and under pipefail grep finding nothing
+  # would end the script here, after the draft has moved but before anything is committed.
+  MODEL="$(grep -m1 '^model:' "$dst" | cut -d: -f2- | sed 's/^ *//' || true)"
 else
   msg="Update site"
 fi
@@ -39,3 +41,8 @@ git add -A
 git commit -m "$msg" || true
 git push origin main
 deploy/deploy.sh jpain.io
+# A newly published post also gets a DRAFT newsletter email in listmonk (../newsletter, on Case);
+# James checks it there and sends it himself. Republishing never makes a second one.
+if [ $# -ge 1 ] && [ -x ../newsletter/new-post.py ]; then
+  ../newsletter/new-post.py "$slug" || echo "newsletter: no draft made (the post itself is published)" >&2
+fi
