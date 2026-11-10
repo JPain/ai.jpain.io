@@ -132,6 +132,11 @@ figure img, figure video { display: block; }
 .e-content figure:has(figcaption) { counter-increment: fig; }
 figcaption { color: var(--muted); font-size: .88rem; font-style: italic; margin-top: .4rem; }
 figcaption::before { content: "Figure " counter(fig) ". "; font-style: normal; font-weight: 700; color: var(--ink); }
+/* A post's hero art (the vibe-coding post's slot machines): a still with a looping video over it,
+   framed at 16:9, or square-ish on phones. In the stylesheet, not inline: the CSP blocks style="". */
+figure.slots-hero { container-type: inline-size; }
+.hero-frame { position: relative; overflow: hidden; height: max(56.25cqw, min(400px, 100cqw)); background: #efe6d2; }
+.hero-frame > img, .hero-frame > video { position: absolute; inset: 0; width: 100%; height: 100%; max-width: none; object-fit: cover; }
 /* Credit for a post's hero art: a small "i" in the corner that opens to one line on hover, focus or tap.
    The text stays in the page (not display:none), so screen readers and feeds still get it. */
 .hero-credit { position: absolute; right: 0; bottom: 0; z-index: 2; display: flex; align-items: center; height: 44px; min-width: 44px;

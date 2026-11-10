@@ -6,7 +6,7 @@ tags: ai, coding
 meta_description: Projects I vibe-coded with AI and then abandoned: a Game of Life card game, an endless AI TV channel, coding by voice, rolling IT news, and my own business website.
 meta_image: slots-grid.webp
 ---
-<figure class="slots-hero" id="slots-hero" style="container-type:inline-size"><div style="position:relative;overflow:hidden;height:max(56.25cqw,min(400px,100cqw));background:#efe6d2"><img src="slots-grid.webp" width="1600" height="900" style="position:absolute;inset:0;width:100%;height:100%;max-width:none;object-fit:cover" alt="Grid of identical orange slot machines titled Claude. Each machine shows 7, 7, 7 on its pay line."><video autoplay loop muted playsinline aria-hidden="true" width="1280" height="720" style="position:absolute;inset:0;width:100%;height:100%;max-width:none;object-fit:cover"><source src="slots.mp4" type="video/mp4" media="(prefers-reduced-motion: no-preference)"></video><span class="hero-credit" tabindex="0"><span class="hero-credit-i" aria-hidden="true"></span><span class="hero-credit-text">3D scene by Claude Opus 5.5</span></span></div></figure>
+<figure class="slots-hero" id="slots-hero"><div class="hero-frame"><img src="slots-grid.webp" width="1600" height="900" alt="Grid of identical orange slot machines titled Claude. Each machine shows 7, 7, 7 on its pay line."><video autoplay loop muted playsinline aria-hidden="true" width="1280" height="720"><source src="slots.mp4" type="video/mp4" media="(prefers-reduced-motion: no-preference)"></video><span class="hero-credit" tabindex="0"><span class="hero-credit-i" aria-hidden="true"></span><span class="hero-credit-text">3D scene by Claude Opus 5.5</span></span></div></figure>
 
 Vibe-coded projects look like vibe-coded projects.
 
