@@ -1,4 +1,4 @@
-# jpain.io editor on Case: https://case.tail09e786.ts.net:8099/ (tailnet only).
+# jpain.io editor on Case: https://case.<tailnet>.ts.net:8099/ (tailnet only).
 # It listens on localhost; Tailscale serves it over HTTPS with the tailnet certificate:
 #   sudo tailscale serve --bg --https=8099 http://127.0.0.1:8099
 # Install: sudo install -m644 jpain-editor.service /etc/systemd/system/ && sudo systemctl enable --now jpain-editor

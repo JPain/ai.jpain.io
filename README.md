@@ -103,7 +103,7 @@ directions he saw are in `work/designs` (git-ignored; `build.sh --serve`).
 ## Writing and publishing
 
 - **James' posts** use front matter between `---` lines (Bear's export format), with no
-  `model:`. He writes them in the browser editor at https://case.tail09e786.ts.net:8099/ (`tools/editor`,
+  `model:`. He writes them in the browser editor at https://case.<tailnet>.ts.net:8099/ (`tools/editor`,
   service `jpain-editor`; install with `tools/editor/jpain-editor.service`), which saves
   into `posts/` and `drafts/` and publishes through `./publish.sh` as James, with no AI trailer.
   Drafts are git-ignored, so his unpublished drafts never reach GitHub.
@@ -143,7 +143,7 @@ directions he saw are in `work/designs` (git-ignored; `build.sh --serve`).
   `/var/lib/kudos/kudos.json` on Fern; the code is in git history (`deploy/kudos/`).
 - **View stats** (`stats/`): `blog-stats.py` runs every 5 minutes from
   `blog-stats.timer` and writes `/var/www/blog-stats/stats.json`. The page is
-  Tailscale-only at https://arctic.tail09e786.ts.net/blogs/, through
+  Tailscale-only at https://arctic.<tailnet>.ts.net/blogs/, through
   `nginx-tailnet-blogs.conf`, which ops/filehost's tailnet vhost includes with
   `snippets/tailnet-*.conf`. The definitions match the file host's (views fold 30
   minutes; your own networks and bots are counted apart), plus two rules:
