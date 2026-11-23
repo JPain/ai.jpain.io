@@ -2,11 +2,11 @@ title: About
 link: about
 summary: Who I am, and how I credit AI on this blog.
 published_date: 2026-09-12
-updated: 2026-11-03
+updated: 2026-11-23
 byline: none
 ___
 
-I'm James Pain. I have twenty years' experience in software engineering, and I write here about technology, building things, and whatever has caught my attention. If you'd like to work with me, I'm on [LinkedIn](https://www.linkedin.com/in/jpainio/).
+I'm James Pain. I have twenty years' experience in software engineering, and I write here about technology, building things, and whatever has caught my attention. If you'd like to work with me, see [signalrate.uk](https://signalrate.uk/). I'm also on [LinkedIn](https://www.linkedin.com/in/jpainio/).
 
 <!-- contact-email -->
 
