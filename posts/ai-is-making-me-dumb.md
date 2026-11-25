@@ -1,6 +1,6 @@
 ---
-title: God Damn AI is making me dumb
-slug: god-damn-ai-is-making-me-dumb
+title: AI is making me dumb
+slug: ai-is-making-me-dumb
 meta_description: It's so god damn tempting to use AI to write. Whether it is articles, code, or documents. I feel like using AI is diminishing my ability to write myself.
 tags: ai, writing, coding
 discuss: Hacker News https://news.ycombinator.com/item?id=48139148

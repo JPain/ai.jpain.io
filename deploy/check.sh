@@ -82,6 +82,7 @@ done
 chk "/blog/ -> /"                         "301 /"                 "$(loc "https://$D/blog/")"
 chk "Bear tag link /blog/?q=ai -> tag"    "301 /tags/ai/"         "$(loc "https://$D/blog/?q=ai")"
 chk "odd tag link -> /tags/"              "301 /tags/"            "$(loc "https://$D/blog/?q=Next.js")"
+chk "old slug -> ai-is-making-me-dumb"   "301 https://$D/ai-is-making-me-dumb/" "$(loc "https://$D/god-damn-ai-is-making-me-dumb/")"
 chk "retired slug -> chroma-subsampling"  "301 https://$D/chroma-subsampling/" "$(loc "https://$D/game-screenshot-compression/")"
 chk "kudos is gone"                       "405"                   "$(code -X POST "https://$D/kudos${POST}")"
 chk "format negotiation: AVIF for Chrome" "image/avif"            "$(ctype -H 'Accept: image/avif,image/webp,*/*' -A 'Mozilla/5.0 Chrome/140' "https://$D/chroma-subsampling/negotiated.jpg")"
